@@ -94,7 +94,7 @@ export const sellIx = async (
         }).instruction()
     return ix
 }
-export const sellFloorIx = async (
+export const sellFloorIx = async (  
     quantity: anchor.BN,
     minProceeds: anchor.BN,
     user: anchor.web3.PublicKey,
@@ -723,7 +723,6 @@ export async function repayIx(
       }).instruction();
       return ix;
 }
-
 export const testFunc1 = async (a: number): Promise<number> => {
     return a + 1;
 }

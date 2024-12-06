@@ -86,7 +86,17 @@ export type Limitless = {
           "isSigner": false
         },
         {
+          "name": "metadata",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenMetadataProgram",
           "isMut": false,
           "isSigner": false
         },
@@ -242,6 +252,16 @@ export type Limitless = {
           "name": "clock",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -325,6 +345,16 @@ export type Limitless = {
           "name": "clock",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -356,6 +386,16 @@ export type Limitless = {
         },
         {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
           "isMut": false,
           "isSigner": false
         }
@@ -402,6 +442,16 @@ export type Limitless = {
         },
         {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
           "isMut": false,
           "isSigner": false
         }
@@ -463,6 +513,16 @@ export type Limitless = {
         },
         {
           "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
           "isMut": false,
           "isSigner": false
         }
@@ -564,6 +624,16 @@ export type Limitless = {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -613,6 +683,16 @@ export type Limitless = {
         },
         {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
           "isMut": false,
           "isSigner": false
         }
@@ -671,6 +751,16 @@ export type Limitless = {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -720,6 +810,16 @@ export type Limitless = {
         },
         {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
           "isMut": false,
           "isSigner": false
         }
@@ -1149,6 +1249,18 @@ export type Limitless = {
           {
             "name": "scalerDecimals",
             "type": "u8"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "name": "uri",
+            "type": "string"
           }
         ]
       }
@@ -1184,6 +1296,208 @@ export type Limitless = {
           }
         ]
       }
+    }
+  ],
+  "events": [
+    {
+      "name": "BoostFloorEvent",
+      "fields": [
+        {
+          "name": "quoteMoved",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "totalMoved",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "quotePool",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "floorPool",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "BorrowQuoteEvent",
+      "fields": [
+        {
+          "name": "totalBorrowed",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "DepositBaseEvent",
+      "fields": [
+        {
+          "name": "totalDeposited",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "RepayQuoteEvent",
+      "fields": [
+        {
+          "name": "totalBorrowed",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "SellFloorEvent",
+      "fields": [
+        {
+          "name": "floorPool",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "totalBurned",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "totalBurnCost",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "TradeEvent",
+      "fields": [
+        {
+          "name": "cqd",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "quotePool",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "basePool",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "isBuy",
+          "type": "bool",
+          "index": false
+        },
+        {
+          "name": "divisorPow",
+          "type": "u8",
+          "index": false
+        },
+        {
+          "name": "gradient",
+          "type": "u32",
+          "index": false
+        },
+        {
+          "name": "offset",
+          "type": "u32",
+          "index": false
+        },
+        {
+          "name": "scaler",
+          "type": "u8",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateFloorEvent",
+      "fields": [
+        {
+          "name": "newFloorCqd",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "divisorPow",
+          "type": "u8",
+          "index": false
+        },
+        {
+          "name": "gradient",
+          "type": "u32",
+          "index": false
+        },
+        {
+          "name": "offset",
+          "type": "u32",
+          "index": false
+        },
+        {
+          "name": "scaler",
+          "type": "u8",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "WithdrawBaseEvent",
+      "fields": [
+        {
+          "name": "totalDeposited",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
     }
   ],
   "errors": [
@@ -1448,7 +1762,17 @@ export const IDL: Limitless = {
           "isSigner": false
         },
         {
+          "name": "metadata",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenMetadataProgram",
           "isMut": false,
           "isSigner": false
         },
@@ -1604,6 +1928,16 @@ export const IDL: Limitless = {
           "name": "clock",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -1687,6 +2021,16 @@ export const IDL: Limitless = {
           "name": "clock",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -1718,6 +2062,16 @@ export const IDL: Limitless = {
         },
         {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
           "isMut": false,
           "isSigner": false
         }
@@ -1764,6 +2118,16 @@ export const IDL: Limitless = {
         },
         {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
           "isMut": false,
           "isSigner": false
         }
@@ -1825,6 +2189,16 @@ export const IDL: Limitless = {
         },
         {
           "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
           "isMut": false,
           "isSigner": false
         }
@@ -1926,6 +2300,16 @@ export const IDL: Limitless = {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -1975,6 +2359,16 @@ export const IDL: Limitless = {
         },
         {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
           "isMut": false,
           "isSigner": false
         }
@@ -2033,6 +2427,16 @@ export const IDL: Limitless = {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -2082,6 +2486,16 @@ export const IDL: Limitless = {
         },
         {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "eventAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "program",
           "isMut": false,
           "isSigner": false
         }
@@ -2511,6 +2925,18 @@ export const IDL: Limitless = {
           {
             "name": "scalerDecimals",
             "type": "u8"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "name": "uri",
+            "type": "string"
           }
         ]
       }
@@ -2546,6 +2972,208 @@ export const IDL: Limitless = {
           }
         ]
       }
+    }
+  ],
+  "events": [
+    {
+      "name": "BoostFloorEvent",
+      "fields": [
+        {
+          "name": "quoteMoved",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "totalMoved",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "quotePool",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "floorPool",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "BorrowQuoteEvent",
+      "fields": [
+        {
+          "name": "totalBorrowed",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "DepositBaseEvent",
+      "fields": [
+        {
+          "name": "totalDeposited",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "RepayQuoteEvent",
+      "fields": [
+        {
+          "name": "totalBorrowed",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "SellFloorEvent",
+      "fields": [
+        {
+          "name": "floorPool",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "totalBurned",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "totalBurnCost",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "TradeEvent",
+      "fields": [
+        {
+          "name": "cqd",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "quotePool",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "basePool",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "isBuy",
+          "type": "bool",
+          "index": false
+        },
+        {
+          "name": "divisorPow",
+          "type": "u8",
+          "index": false
+        },
+        {
+          "name": "gradient",
+          "type": "u32",
+          "index": false
+        },
+        {
+          "name": "offset",
+          "type": "u32",
+          "index": false
+        },
+        {
+          "name": "scaler",
+          "type": "u8",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateFloorEvent",
+      "fields": [
+        {
+          "name": "newFloorCqd",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "divisorPow",
+          "type": "u8",
+          "index": false
+        },
+        {
+          "name": "gradient",
+          "type": "u32",
+          "index": false
+        },
+        {
+          "name": "offset",
+          "type": "u32",
+          "index": false
+        },
+        {
+          "name": "scaler",
+          "type": "u8",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "WithdrawBaseEvent",
+      "fields": [
+        {
+          "name": "totalDeposited",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "decimals",
+          "type": "u8",
+          "index": false
+        }
+      ]
     }
   ],
   "errors": [
