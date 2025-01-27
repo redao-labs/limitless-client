@@ -4,8 +4,8 @@ import { MarketState } from './interfaces';
 import { TOKEN_PROGRAM_ID } from '@coral-xyz/anchor/dist/cjs/utils/token';
 import Decimal from 'decimal.js';
 
-const PROGRAM_ID = "z9P826HFdY5NPMgjgv4eubKFuxyJcjkRfdJuekZoaR6"
-const BASE_ADDRESS = "6HS3moymTsmASZo1VnjyPQ4Hfh1jrHdZ81ZaiTTvPsHM"
+export const PROGRAM_ID = "z9P826HFdY5NPMgjgv4eubKFuxyJcjkRfdJuekZoaR6"
+export const BASE_ADDRESS = "GTdRgfWZvcokP8dNFRB9wDvpDJSvXL5BFiNgaw3Tru8u"
 
 export const createProgramConnection = async (
     anchorWallet: anchor.Wallet,
@@ -94,7 +94,7 @@ export const sellIx = async (
         }).instruction()
     return ix
 }
-export const sellFloorIx = async (  
+export const sellFloorIx = async (
     quantity: anchor.BN,
     minProceeds: anchor.BN,
     user: anchor.web3.PublicKey,
@@ -141,7 +141,7 @@ function solveForXUp(a: Decimal, k: Decimal, z: Decimal): Decimal {
     let x = xInitial;
     const tolerance = new Decimal(1e-6);
     const maxIterations = 100;
-
+    console.log("toleralance", tolerance)
     for (let i = 0; i < maxIterations; i++) {
         const fValue = computeFUp(x, a, k, z);
         const fPrimeValue = computeFPrimeUp(x, k);
@@ -151,7 +151,7 @@ function solveForXUp(a: Decimal, k: Decimal, z: Decimal): Decimal {
         }
 
         const xNew = x.minus(fValue.dividedBy(fPrimeValue));
-
+        console.log("x new", xNew.toString(), x.toString())
         if (xNew.minus(x).abs().lessThan(tolerance)) {
             console.log("iterations: ", i)
             return xNew;
@@ -314,6 +314,63 @@ export const lookupLimitDown = async (
 
     return a;
 }
+export const lookupLimitDownDec = async (
+    constant: number,
+    newCqd: number,
+    cqd: number,
+    quoteDecimals: number
+): Promise<number> => {
+    // Create Decimal instances
+    const constantD = new Decimal(constant);
+    const cqdD = new Decimal(cqd);
+    const newCqdD = new Decimal(newCqd);
+
+    // Optional: still compute basePow if needed
+    // const basePow = new Decimal(10).pow(quoteDecimals);
+
+    // Validate 'constant'
+    if (constantD.lte(0) || constantD.eq(1)) {
+        throw new Error("Parameter 'k' must be greater than 0 and not equal to 1.");
+    }
+
+    // Use natural log via log(x, Math.E)
+    const ln_k = Decimal.log(constantD, Math.E);
+    if (ln_k.eq(0)) {
+        throw new Error("ln(k) is zero, causing a division by zero error.");
+    }
+
+    // (ln_k)^2
+    const ln_k_squared = ln_k.mul(ln_k);
+
+    // Calculate exponents: 1 + cqd / 1e12
+    const exponentZ = new Decimal(1).plus(cqdD.div(1e12));
+    const exponentX = new Decimal(1).plus(newCqdD.div(1e12));
+
+    // constant^exponent
+    const k_exponentZ = constantD.pow(exponentZ);
+    const k_exponentX = constantD.pow(exponentX);
+
+    // Inner terms
+    const termZ_inner = cqdD
+        .mul(1e4)
+        .div(ln_k)
+        .minus(new Decimal(1e16).div(ln_k_squared));
+
+    const termX_inner = newCqdD
+        .mul(1e4)
+        .div(ln_k)
+        .minus(new Decimal(1e16).div(ln_k_squared));
+
+    // Outer terms
+    const termZ = k_exponentZ.mul(termZ_inner).plus(new Decimal(100000).mul(cqdD));
+    const termX = k_exponentX.mul(termX_inner).plus(new Decimal(100000).mul(newCqdD));
+    console.log("haiiii")
+    // Final result
+    const result = termZ.minus(termX);
+
+    // Convert back to a number. Watch out for very large or very small values.
+    return result.toNumber();
+};
 export const lookupLimitUpWithOutput = async (
     constant: number,
     newCqd: number,
@@ -516,7 +573,6 @@ export const updateFloorIx = async (
     const ix = await program.methods
         .updateFloor(quantity)
         .accounts({
-            user: user,
             marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
             marketState: market,
             systemProgram: anchor.web3.SystemProgram.programId
@@ -533,7 +589,6 @@ export const boostFloorIx = async (
     const ix = await program.methods
         .boostFloor()
         .accounts({
-            user: user,
             marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
             marketState: market,
             quoteTokenVault: marketState.quoteMintTokenAddress,
@@ -554,15 +609,15 @@ export async function createDepositAccountIx(
     let [depositAccountAddress, depositAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
         [market.toBuffer(), user.toBuffer()],
         program.programId
-      );
+    );
     const ix = await program.methods
-      .createDepositAccount()
-      .accounts({
-        user: user,
-        marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-        marketState: market,
-        depositAccount: depositAccountAddress,
-      }).instruction()
+        .createDepositAccount()
+        .accounts({
+            user: user,
+            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
+            marketState: market,
+            depositAccount: depositAccountAddress,
+        }).instruction()
     return ix
 }
 export async function depositIx(
@@ -571,24 +626,24 @@ export async function depositIx(
     market: anchor.web3.PublicKey,
     program: anchor.Program<Limitless>,
     userBaseTokenAddress: anchor.web3.PublicKey,
-):  Promise<anchor.web3.TransactionInstruction> {
+): Promise<anchor.web3.TransactionInstruction> {
     let marketState = await program.account.marketState.fetch(market);
     let [depositAccountAddress, depositAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
         [market.toBuffer(), user.toBuffer()],
         program.programId
-      );
-      const ix = await program.methods
-      .depositBase(amount)
-      .accounts({
-        user: user,
-        marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-        marketState: market,
-        baseMint: marketState.baseMintAddress,
-        userBaseToken: userBaseTokenAddress,
-        baseDepositVault: marketState.baseDepositAddress,
-        depositAccount: depositAccountAddress
-      }).instruction();
-      return ix;
+    );
+    const ix = await program.methods
+        .depositBase(amount)
+        .accounts({
+            user: user,
+            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
+            marketState: market,
+            baseMint: marketState.baseMintAddress,
+            userBaseToken: userBaseTokenAddress,
+            baseDepositVault: marketState.baseDepositAddress,
+            depositAccount: depositAccountAddress
+        }).instruction();
+    return ix;
 }
 export function quantityFromProceedsExpo(
     floorq: bigint,
@@ -626,24 +681,30 @@ export async function withdrawIx(
     market: anchor.web3.PublicKey,
     program: anchor.Program<Limitless>,
     userBaseTokenAddress: anchor.web3.PublicKey,
-):  Promise<anchor.web3.TransactionInstruction> {
+    quoteMint: anchor.web3.PublicKey
+): Promise<anchor.web3.TransactionInstruction> {
     let marketState = await program.account.marketState.fetch(market);
     let [depositAccountAddress, depositAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
         [market.toBuffer(), user.toBuffer()],
         program.programId
+    );
+    let [lendingPoolAddress, lendingPoolBump] = await anchor.web3.PublicKey.findProgramAddress(
+        [new anchor.web3.PublicKey(BASE_ADDRESS).toBuffer(), quoteMint.toBuffer()],
+        program.programId
       );
-      const ix = await program.methods
-      .withdrawBase(amount)
-      .accounts({
-        user: user,
-        marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-        marketState: market,
-        baseMint: marketState.baseMintAddress,
-        userBaseToken: userBaseTokenAddress,
-        baseDepositVault: marketState.baseDepositAddress,
-        depositAccount: depositAccountAddress
-      }).instruction();
-      return ix;
+    const ix = await program.methods
+        .withdrawBase(amount)
+        .accounts({
+            user: user,
+            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
+            marketState: market,
+            // lendingPool: lendingPoolAddress,
+            baseMint: marketState.baseMintAddress,
+            userBaseToken: userBaseTokenAddress,
+            baseDepositVault: marketState.baseDepositAddress,
+            depositAccount: depositAccountAddress
+        }).instruction();
+    return ix;
 }
 export function floorProceedsExpo(
     floorq: bigint,
@@ -658,7 +719,7 @@ export function floorProceedsExpo(
 
     // Compute the base power
     const basePow = BigInt(10) ** BigInt(quoteDecimals);
-    
+
     // Calculate the total proceeds
     const total = price * quantity;
 
@@ -671,7 +732,7 @@ export function floorProceedsExpo(
     }
 
     // Logging the proceedsNormalized value (equivalent to Rust's msg!)
-    console.log(`floor proceeds - proceeds normalized: ${proceedsNormalized}`);
+    //console.log(`floor proceeds - proceeds normalized: ${proceedsNormalized}`);
 
     return proceedsNormalized;
 }
@@ -681,23 +742,30 @@ export async function borrowIx(
     market: anchor.web3.PublicKey,
     program: anchor.Program<Limitless>,
     userQuoteTokenAddress: anchor.web3.PublicKey,
-):  Promise<anchor.web3.TransactionInstruction> {
+    quoteMint: anchor.web3.PublicKey
+): Promise<anchor.web3.TransactionInstruction> {
     let marketState = await program.account.marketState.fetch(market);
     let [depositAccountAddress, depositAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
         [market.toBuffer(), user.toBuffer()],
         program.programId
+    );
+    let [lendingPoolAddress, lendingPoolBump] = await anchor.web3.PublicKey.findProgramAddress(
+        [new anchor.web3.PublicKey(BASE_ADDRESS).toBuffer(), quoteMint.toBuffer()],
+        program.programId
       );
-      const ix = await program.methods
-      .borrowQuote(amount)
-      .accounts({
-        user: user,
-        marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-        marketState: market,
-        userQuoteToken: userQuoteTokenAddress,
-        quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
-        depositAccount: depositAccountAddress
-      }).instruction();
-      return ix;
+    const ix = await program.methods
+        .borrowQuote(amount)
+        .accounts({
+            user: user,
+            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
+            marketState: market,
+            // lendingPool: lendingPoolAddress,
+            userQuoteToken: userQuoteTokenAddress,
+            quoteTokenVault: marketState.quoteMintTokenAddress,
+            quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
+            depositAccount: depositAccountAddress
+        }).instruction();
+    return ix;
 }
 export async function repayIx(
     amount: anchor.BN,
@@ -705,23 +773,24 @@ export async function repayIx(
     market: anchor.web3.PublicKey,
     program: anchor.Program<Limitless>,
     userQuoteTokenAddress: anchor.web3.PublicKey,
-):  Promise<anchor.web3.TransactionInstruction> {
+): Promise<anchor.web3.TransactionInstruction> {
     let marketState = await program.account.marketState.fetch(market);
     let [depositAccountAddress, depositAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
         [market.toBuffer(), user.toBuffer()],
         program.programId
-      );
-      const ix = await program.methods
-      .repayQuote(amount)
-      .accounts({
-        user: user,
-        marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-        marketState: market,
-        userQuoteToken: userQuoteTokenAddress,
-        quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
-        depositAccount: depositAccountAddress
-      }).instruction();
-      return ix;
+    );
+    const ix = await program.methods
+        .repayQuote(amount)
+        .accounts({
+            user: user,
+            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
+            marketState: market,
+            userQuoteToken: userQuoteTokenAddress,
+            quoteTokenVault: marketState.quoteMintTokenAddress,
+            quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
+            depositAccount: depositAccountAddress
+        }).instruction();
+    return ix;
 }
 export const testFunc1 = async (a: number): Promise<number> => {
     return a + 1;
