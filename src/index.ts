@@ -1,814 +1,927 @@
 import * as anchor from '@coral-xyz/anchor';
-import { Limitless, IDL } from './limitless';
+import { Limitless } from './limitless';
 import { MarketState } from './interfaces';
-import { TOKEN_PROGRAM_ID } from '@coral-xyz/anchor/dist/cjs/utils/token';
-import Decimal from 'decimal.js';
+import {
+    BASE_ADDRESS,
+    createIx,
+    createVaultsIxes,
+    claimFeesIx,
+    claimBaseAllocationIx,
+    presaleBuyIx,
+    claimPresaleIx,
+    buyIx,
+    buyIxCreator,
+    sellIx,
+    sellFloorIx,
+    createDepositAccountIx,
+    depositIx,
+    withdrawIx,
+    borrowIx,
+    repayIx,
+    createProgramConnection,
+    boostFloorIx,
+    updateFloorIx
+} from './ix-builder';
+import {
+    Connection,
+    ComputeBudgetProgram,
+    PublicKey,
+    TransactionInstruction,
+    TransactionMessage,
+    VersionedTransaction,
+    ParsedTransactionWithMeta
+} from '@solana/web3.js';
+import {
+    TOKEN_PROGRAM_ID,
+    createAssociatedTokenAccountInstruction,
+    getAccount,
+    getAssociatedTokenAddress
+} from '@solana/spl-token';
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
+import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
+import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata';
+import { irysUploader } from '@metaplex-foundation/umi-uploader-irys';
+import { createGenericFile } from '@metaplex-foundation/umi';
+//smart contract api
 
-export const PROGRAM_ID = "z9P826HFdY5NPMgjgv4eubKFuxyJcjkRfdJuekZoaR6"
-export const BASE_ADDRESS = "GTdRgfWZvcokP8dNFRB9wDvpDJSvXL5BFiNgaw3Tru8u"
+type TxProgressCallback = (message: string, type: 'info' | 'success' | 'error') => void;
 
-export const createProgramConnection = async (
-    anchorWallet: anchor.Wallet,
-    confirmOpts: anchor.web3.ConfirmOptions,
-    connection: anchor.web3.Connection
-): Promise<anchor.Program<Limitless>> => {
-    //const solConnection = new anchor.web3.Connection(rpcUrl);
-    const provider = new anchor.AnchorProvider(connection, anchorWallet, confirmOpts);
-    const idl = IDL as Limitless;
-    const program = new anchor.Program<Limitless>(idl, new anchor.web3.PublicKey(PROGRAM_ID), provider);
-    return program
-}
-export const getMarket = async (
-    marketAddress: anchor.web3.PublicKey,
-    program: anchor.Program<Limitless>,
-    commitment: anchor.web3.Commitment
-): Promise<MarketState> => {
-    let marketState: any = await program.account.marketState.fetch(marketAddress, commitment);
-    return marketState as MarketState
-}
-//todo buy Tx, buy IX
-export const buyIx = async (
-    quantity: anchor.BN,
-    maxCost: anchor.BN,
-    user: anchor.web3.PublicKey,
-    userBaseToken: anchor.web3.PublicKey,
-    userQuoteToken: anchor.web3.PublicKey,
-    market: anchor.web3.PublicKey,
-    program: anchor.Program<Limitless>,
-): Promise<anchor.web3.TransactionInstruction> => {
-    //TODO pass in market as parameter
-    let marketState = await program.account.marketState.fetch(market);
-    const ix = await program.methods
-        .buy({
-            quantity: quantity,
-            maxCost: maxCost
-        })
-        .accounts({
-            user: user,
-            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-            marketState: market,
-            baseMint: marketState.baseMintAddress,
-            userBaseToken: userBaseToken,
-            baseTokenVault: marketState.baseMintTokenAddress,
-            userQuoteToken: userQuoteToken,
-            quoteTokenVault: marketState.quoteMintTokenAddress,
-            quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
-            platformFeeVault: marketState.platformFeeVaultAddress,
-            feeReceiveAddress: marketState.receiveAddress,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: anchor.web3.SystemProgram.programId,
-            clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
-        }).instruction()
-    return ix
-}
-export const sellIx = async (
-    quantity: anchor.BN,
-    minProceeds: anchor.BN,
-    user: anchor.web3.PublicKey,
-    userBaseToken: anchor.web3.PublicKey,
-    userQuoteToken: anchor.web3.PublicKey,
-    market: anchor.web3.PublicKey,
-    program: anchor.Program<Limitless>,
-): Promise<anchor.web3.TransactionInstruction> => {
-    let marketState = await program.account.marketState.fetch(market);
-    const ix = await program.methods
-        .sell({
-            quantity: quantity,
-            minProceeds: minProceeds
-        })
-        .accounts({
-            user: user,
-            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-            marketState: market,
-            baseMint: marketState.baseMintAddress,
-            userBaseToken: userBaseToken,
-            baseTokenVault: marketState.baseMintTokenAddress,
-            userQuoteToken: userQuoteToken,
-            quoteTokenVault: marketState.quoteMintTokenAddress,
-            quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
-            platformFeeVault: marketState.platformFeeVaultAddress,
-            feeReceiveAddress: marketState.receiveAddress,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: anchor.web3.SystemProgram.programId,
-            clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
-        }).instruction()
-    return ix
-}
-export const sellFloorIx = async (
-    quantity: anchor.BN,
-    minProceeds: anchor.BN,
-    user: anchor.web3.PublicKey,
-    userBaseToken: anchor.web3.PublicKey,
-    userQuoteToken: anchor.web3.PublicKey,
-    market: anchor.web3.PublicKey,
-    program: anchor.Program<Limitless>,
-): Promise<anchor.web3.TransactionInstruction> => {
-    let marketState = await program.account.marketState.fetch(market);
-    const ix = await program.methods
-        .sellFloor({
-            quantity: quantity,
-            minProceeds: minProceeds
-        })
-        .accounts({
-            user: user,
-            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-            marketState: market,
-            baseMint: marketState.baseMintAddress,
-            userBaseToken: userBaseToken,
-            baseTokenVault: marketState.baseMintTokenAddress,
-            userQuoteToken: userQuoteToken,
-            quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: anchor.web3.SystemProgram.programId,
-            clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
-        }).instruction()
-    return ix
-}
-export const lookupLimitUp = async (
-    cost: number,
-    constant: number,
-    startQ: number,
-    quoteDecimals: number
-): Promise<number> => {
-    let base = 10;
-    let basePow = Math.pow(base, Number(quoteDecimals))
-    let costX = cost * basePow
-    let newX = solveForXUp(new Decimal(costX), new Decimal(constant), new Decimal(startQ))
-    return newX.toNumber()
-}
-function solveForXUp(a: Decimal, k: Decimal, z: Decimal): Decimal {
-    const xInitial = findInitialGuess(a, k, z);
-    let x = xInitial;
-    const tolerance = new Decimal(1e-6);
-    const maxIterations = 100;
-    console.log("toleralance", tolerance)
-    for (let i = 0; i < maxIterations; i++) {
-        const fValue = computeFUp(x, a, k, z);
-        const fPrimeValue = computeFPrimeUp(x, k);
+export class LimitlessSDK {
+    program: anchor.Program<Limitless>;
+    wallet: anchor.Wallet;
+    connection: Connection;
 
-        if (fPrimeValue.equals(0)) {
-            throw new Error('Derivative is zero. Newton-Raphson method fails.');
-        }
-
-        const xNew = x.minus(fValue.dividedBy(fPrimeValue));
-        console.log("x new", xNew.toString(), x.toString())
-        if (xNew.minus(x).abs().lessThan(tolerance)) {
-            console.log("iterations: ", i)
-            return xNew;
-        }
-
-        x = xNew;
+    constructor(
+        wallet: anchor.Wallet,
+        connection: Connection,
+        commitment: anchor.web3.Commitment = "processed"
+    ) {
+        this.wallet = wallet;
+        this.connection = connection;
+        this.program = null as any; // Will be initialized in init()
     }
-    console.log("iterations: ", maxIterations)
 
-    return x;
-    //throw new Error('Maximum iterations exceeded. No solution found.');
-}
-function findInitialGuess(a: Decimal, k: Decimal, z: Decimal): Decimal {
-    const tolerance = new Decimal(1e-4);
-    const maxIterations = 1000;
-
-    // Define an interval [xLower, xUpper] where the function changes sign
-    let xLower = z.plus(new Decimal(1)); // Start slightly above z
-    let xUpper = z.plus(new Decimal(1e12)); // An upper bound; adjust as needed
-
-    let fLower = computeFUp(xLower, a, k, z);
-    let fUpper = computeFUp(xUpper, a, k, z);
-
-    // Expand the interval until the function changes sign
-    while (fLower.times(fUpper).greaterThanOrEqualTo(0)) {
-        xUpper = xUpper.plus(new Decimal(1e12));
-        fUpper = computeFUp(xUpper, a, k, z);
-
-        // Safety check to prevent infinite loop
-        if (xUpper.minus(z).greaterThan(new Decimal(1e15))) {
-            throw new Error('Bisection method fails. Cannot find a valid interval.');
+    //initialize sdk -> create the program
+    async init(): Promise<void> {
+        try {
+            this.program = await createProgramConnection(
+                this.wallet,
+                { commitment: "processed" },
+                this.connection
+            );
+            return;
+        } catch (error) {
+            console.error("Failed to initialize SDK:", error);
+            throw error;
         }
     }
 
-    let xMid = new Decimal(0);
-    for (let i = 0; i < maxIterations; i++) {
-        xMid = xLower.plus(xUpper).dividedBy(2);
-        const fMid = computeFUp(xMid, a, k, z);
+    async trackTxProgress(
+        txid: string,
+        blockhash: any,
+        callback?: TxProgressCallback
+    ): Promise<boolean> {
+        if (!this.program) throw new Error("Program not initialized");
 
-        if (fMid.abs().lessThan(tolerance)) {
-            return xMid;
+        let confirmed: ParsedTransactionWithMeta | null = null;
+        let confBool = false;
+        let confirmWaitCount = 0;
+
+        while (true) {
+            try {
+                confirmed = await this.program.provider.connection.getParsedTransaction(
+                    txid,
+                    { commitment: "confirmed", maxSupportedTransactionVersion: 0 }
+                );
+
+                const blockheight = await this.program.provider.connection.getBlockHeight();
+
+                if (confirmed != null && confirmed?.meta?.err == null) {
+                    console.log('Transaction completed!');
+                    if (callback) callback('Transaction completed!', 'success');
+                    confBool = true;
+                    break;
+                } else if (confirmed != null && confirmed?.meta?.err != null) {
+                    console.log('Transaction error!');
+                    if (callback) callback(`Transaction error: ${JSON.stringify(confirmed.meta.err)}`, 'error');
+                    break;
+                } else if (confirmed == null && blockheight > blockhash.lastValidBlockHeight) {
+                    console.log("Transaction abandoned!");
+                    if (callback) callback("Transaction abandoned due to timeout", 'error');
+                    break;
+                }
+
+                confirmWaitCount++;
+                if (confirmWaitCount > 3) {
+                    let blocksLeft = blockhash.lastValidBlockHeight - blockheight;
+                    if (callback) callback(`Confirming transaction... Tx will be abandoned in ${blocksLeft} blocks`, 'info');
+                }
+            } catch (e) {
+                console.log(e);
+                break;
+            }
+            await new Promise(r => setTimeout(r, 1000));
         }
-
-        if (fLower.times(fMid).lessThan(0)) {
-            xUpper = xMid;
-            fUpper = fMid;
-        } else {
-            xLower = xMid;
-            fLower = fMid;
-        }
-
-        // If the interval is smaller than the tolerance, return the midpoint
-        if (xUpper.minus(xLower).abs().lessThan(tolerance)) {
-            return xMid;
-        }
-    }
-    return xMid;
-    //throw new Error('Maximum iterations exceeded in bisection method. No initial guess found.');
-}
-function computeFPrimeUp(x: Decimal, k: Decimal): Decimal {
-    const ln_k = Decimal.ln(k);
-    const exponent = new Decimal(1).plus(x.dividedBy(new Decimal(1e12)));
-    const kExponent = k.pow(exponent);
-    const commonTerm = new Decimal(1e4).dividedBy(ln_k);
-    const constantTerm = new Decimal(1e16).dividedBy(ln_k.pow(2));
-    const derivativeExponent = kExponent.times(ln_k.dividedBy(new Decimal(1e12)));
-    const derivativeTerm = derivativeExponent
-        .times(x.times(commonTerm).minus(constantTerm))
-        .plus(kExponent.times(commonTerm))
-        .plus(new Decimal(100000));
-    return derivativeTerm;
-}
-function computeFUp(x: Decimal, a: Decimal, k: Decimal, z: Decimal): Decimal {
-    const ln_k = Decimal.ln(k);
-    const exponentX = new Decimal(1).plus(x.dividedBy(new Decimal(1e12)));
-    const exponentZ = new Decimal(1).plus(z.dividedBy(new Decimal(1e12)));
-    const commonTerm = new Decimal(1e4).dividedBy(ln_k);
-    const constantTerm = new Decimal(1e16).dividedBy(ln_k.pow(2));
-    const termX = k.pow(exponentX)
-        .times(x.times(commonTerm).minus(constantTerm))
-        .plus(new Decimal(100000).times(x));
-    const termZ = k.pow(exponentZ)
-        .times(z.times(commonTerm).minus(constantTerm))
-        .plus(new Decimal(100000).times(z));
-    return termX.minus(termZ).minus(a);
-}
-// function solveForXUp(a: number, k: number, z: number): number {
-//     let x = z + 1e6; // Initial guess (slightly greater than z)
-//     const tolerance = 1e-6;
-//     const maxIterations = 10000;
-
-//     for (let i = 0; i < maxIterations; i++) {
-//         const fValue = computeFUp(x, a, k, z);
-//         const fPrimeValue = computeFPrimeUp(x, k);
-
-//         if (fPrimeValue === 0) {
-//             throw new Error('Derivative is zero. Newton-Raphson method fails.');
-//         }
-
-//         const xNew = x - fValue / fPrimeValue;
-
-//         if (Math.abs(xNew - x) < tolerance) {
-//             return xNew;
-//         }
-
-//         x = xNew;
-//     }
-//     return x
-//     //throw new Error('Maximum iterations exceeded. No solution found.');
-// }
-// function computeFPrimeUp(x: number, k: number): number {
-//     const ln_k = Math.log(k);
-//     const exponent = 1 + x / 1e12;
-//     const kExponent = Math.pow(k, exponent);
-//     const commonTerm = 1e4 / ln_k;
-//     const constantTerm = 1e16 / (ln_k * ln_k);
-//     const derivativeExponent = kExponent * (ln_k / 1e12);
-//     const derivativeTerm = derivativeExponent * (x * commonTerm - constantTerm) + kExponent * commonTerm + 100000;
-//     return derivativeTerm;
-// }
-// function computeFUp(x: number, a: number, k: number, z: number): number {
-//     const ln_k = Math.log(k);
-//     const exponentX = 1 + x / 1e12;
-//     const exponentZ = 1 + z / 1e12;
-//     const commonTerm = 1e4 / ln_k;
-//     const constantTerm = 1e16 / (ln_k * ln_k);
-//     const termX = Math.pow(k, exponentX) * (x * commonTerm - constantTerm) + 100000 * x;
-//     const termZ = Math.pow(k, exponentZ) * (z * commonTerm - constantTerm) + 100000 * z;
-//     return termX - termZ - a;
-// }
-export const lookupLimitDown = async (
-    constant: number,
-    newCqd: number,
-    cqd: number,
-    quoteDecimals: number
-): Promise<number> => {
-    const base = 10;
-    const basePow = Math.pow(base, Number(quoteDecimals));
-    if (constant <= 0 || constant === 1) {
-        throw new Error("Parameter 'k' must be greater than 0 and not equal to 1.");
-    }
-    const ln_k = Math.log(constant);
-    if (ln_k === 0) {
-        throw new Error("ln(k) is zero, causing a division by zero error.");
-    }
-    const ln_k_squared = ln_k * ln_k;
-    const exponentZ = 1 + cqd / 1e12;
-    const exponentX = 1 + newCqd / 1e12;
-
-    const k_exponentZ = Math.pow(constant, exponentZ);
-    const k_exponentX = Math.pow(constant, exponentX);
-
-    const termZ_inner = (cqd * 1e4) / ln_k - 1e16 / ln_k_squared;
-    const termX_inner = (newCqd * 1e4) / ln_k - 1e16 / ln_k_squared;
-
-    const termZ = k_exponentZ * termZ_inner + 100000 * cqd;
-    const termX = k_exponentX * termX_inner + 100000 * newCqd;
-
-    const a = termZ - termX;
-
-    return a;
-}
-export const lookupLimitDownDec = async (
-    constant: number,
-    newCqd: number,
-    cqd: number,
-    quoteDecimals: number
-): Promise<number> => {
-    // Create Decimal instances
-    const constantD = new Decimal(constant);
-    const cqdD = new Decimal(cqd);
-    const newCqdD = new Decimal(newCqd);
-
-    // Optional: still compute basePow if needed
-    // const basePow = new Decimal(10).pow(quoteDecimals);
-
-    // Validate 'constant'
-    if (constantD.lte(0) || constantD.eq(1)) {
-        throw new Error("Parameter 'k' must be greater than 0 and not equal to 1.");
+        return confBool;
     }
 
-    // Use natural log via log(x, Math.E)
-    const ln_k = Decimal.log(constantD, Math.E);
-    if (ln_k.eq(0)) {
-        throw new Error("ln(k) is zero, causing a division by zero error.");
-    }
+    async buildAndSendTransaction(
+        instructions: TransactionInstruction[],
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        if (!this.wallet.publicKey) throw new Error("Wallet not connected");
+        if (!this.program) throw new Error("Program not initialized");
 
-    // (ln_k)^2
-    const ln_k_squared = ln_k.mul(ln_k);
+        try {
+            if (callback) callback("Building transaction...", 'info');
 
-    // Calculate exponents: 1 + cqd / 1e12
-    const exponentZ = new Decimal(1).plus(cqdD.div(1e12));
-    const exponentX = new Decimal(1).plus(newCqdD.div(1e12));
+            const blockhash = await this.connection.getLatestBlockhash();
 
-    // constant^exponent
-    const k_exponentZ = constantD.pow(exponentZ);
-    const k_exponentX = constantD.pow(exponentX);
+            const messageV0 = new TransactionMessage({
+                payerKey: this.wallet.publicKey,
+                recentBlockhash: blockhash.blockhash,
+                instructions: instructions,
+            }).compileToV0Message();
 
-    // Inner terms
-    const termZ_inner = cqdD
-        .mul(1e4)
-        .div(ln_k)
-        .minus(new Decimal(1e16).div(ln_k_squared));
+            const transactionV0 = new VersionedTransaction(messageV0);
 
-    const termX_inner = newCqdD
-        .mul(1e4)
-        .div(ln_k)
-        .minus(new Decimal(1e16).div(ln_k_squared));
+            if (callback) callback("Signing transaction...", 'info');
+            const signedTx = await this.wallet.signTransaction(transactionV0);
 
-    // Outer terms
-    const termZ = k_exponentZ.mul(termZ_inner).plus(new Decimal(100000).mul(cqdD));
-    const termX = k_exponentX.mul(termX_inner).plus(new Decimal(100000).mul(newCqdD));
-    console.log("haiiii")
-    // Final result
-    const result = termZ.minus(termX);
+            if (callback) callback("Sending transaction...", 'info');
+            const txid = await this.connection.sendTransaction(signedTx, { skipPreflight: true });
+            console.log("Transaction sent:", txid);
 
-    // Convert back to a number. Watch out for very large or very small values.
-    return result.toNumber();
-};
-export const lookupLimitUpWithOutput = async (
-    constant: number,
-    newCqd: number,
-    cqd: number,
-    quoteDecimals: number
-): Promise<number> => {
-    if (constant <= 0 || constant === 1) {
-        throw new Error("Parameter 'k' must be greater than 0 and not equal to 1.");
-    }
-    const ln_k = Math.log(constant);
-    if (ln_k === 0) {
-        throw new Error("ln(k) is zero, causing a division by zero error.");
-    }
-    const ln_k_squared = ln_k * ln_k;
-    const exponentZ = 1 + cqd / 1e12;
-    const exponentX = 1 + newCqd / 1e12;
+            const confirmed = await this.trackTxProgress(txid, blockhash, callback);
 
-    const k_exponentZ = Math.pow(constant, exponentZ);
-    const k_exponentX = Math.pow(constant, exponentX);
-
-    const termZ_inner = (cqd * 1e4) / ln_k - 1e16 / ln_k_squared;
-    const termX_inner = (newCqd * 1e4) / ln_k - 1e16 / ln_k_squared;
-
-    const termZ = k_exponentZ * termZ_inner + 100000 * cqd;
-    const termX = k_exponentX * termX_inner + 100000 * newCqd;
-
-    const a = termX - termZ;
-
-    return a;
-}
-export const lookupLimitDownWithOutput = async (
-    proceeds: number,
-    constant: number,
-    startQ: number,
-    quoteDecimals: number
-): Promise<number> => {
-    const base = 10;
-    const basePow = Math.pow(base, Number(quoteDecimals));
-    const costX = proceeds * basePow;
-    const newX = solveForXDown(costX, constant, startQ);
-    return newX;
-}
-function solveForXDown(a: number, k: number, z: number): number {
-    let x = z - 1e6; // Initial guess (slightly less than z)
-    const tolerance = 1e-6;
-    const maxIterations = 10000;
-
-    for (let i = 0; i < maxIterations; i++) {
-        const fValue = computeFDown(x, a, k, z);
-        const fPrimeValue = computeFPrimeDown(x, k);
-
-        if (fPrimeValue === 0) {
-            throw new Error('Derivative is zero. Newton-Raphson method fails.');
-        }
-
-        const xNew = x - fValue / fPrimeValue;
-
-        if (Math.abs(xNew - x) < tolerance) {
-            return xNew;
-        }
-
-        x = xNew;
-    }
-    return x
-    //throw new Error('Maximum iterations exceeded. No solution found.');
-}
-function computeFDown(x: number, a: number, k: number, z: number): number {
-    const ln_k = Math.log(k);
-
-    // Compute f(z)
-    const exponentZ = 1 + z / 1e12;
-    const kPowerZ = Math.pow(k, exponentZ);
-    const termZ1 = (z * 1e4) / ln_k;
-    const termZ2 = 1e16 / (ln_k * ln_k);
-    const fz = kPowerZ * (termZ1 - termZ2) + 100000 * z;
-
-    // Compute f(x)
-    const exponentX = 1 + x / 1e12;
-    const kPowerX = Math.pow(k, exponentX);
-    const termX1 = (x * 1e4) / ln_k;
-    const termX2 = 1e16 / (ln_k * ln_k);
-    const fx = kPowerX * (termX1 - termX2) + 100000 * x;
-
-    // Compute F(x) = f(z) - f(x) - a
-    const F = fz - fx - a;
-
-    return F;
-}
-function computeFPrimeDown(x: number, k: number): number {
-    const ln_k = Math.log(k);
-
-    // Compute components for f'(x)
-    const exponent = 1 + x / 1e12;
-    const kPowerX = Math.pow(k, exponent);
-    const A_x = kPowerX;
-    const B_x = (x * 1e4) / ln_k - 1e16 / (ln_k * ln_k);
-    const A_prime_x = (A_x * ln_k) / 1e12;
-    const B_prime_x = 1e4 / ln_k;
-
-    // Compute f'(x)
-    const f_prime = A_prime_x * B_x + A_x * B_prime_x + 100000;
-
-    // Since F(x) = f(z) - f(x) - a, then F'(x) = -f'(x)
-    const derivative = -f_prime;
-
-    return derivative;
-}
-//lookupLimitUpWithOutput -> use base quantity for new cqd, get integral
-//lookupLimitDownWithOutput -> use reverse calc from a -> unkown x value
-// Function to compute f(x)
-function f(x: Decimal, a: Decimal, s: Decimal, k: Decimal): Decimal {
-    const exp = x.div(1e12).plus(1);  // 1 + x / 10^12
-    const kExp = k.pow(exp);  // k^(1 + x / 10^12)
-    const sTerm = x.times(kExp).div(1e8);  // x * k^(1 + x / 10^12) / 10^8
-
-    // f(x) = (x - s) * (x * k^(1 + x / 10^12) / 10^8 + 100000) - a
-    return (x.minus(s)).times(sTerm.plus(100000)).minus(a);
-}
-function fPrime(x: Decimal, s: Decimal, k: Decimal): Decimal {
-    const exp = x.div(1e12).plus(1);  // 1 + x / 10^12
-    const ln_k = k.ln();  // Natural log of k
-    const kExp = k.pow(exp);  // k^(1 + x / 10^12)
-
-    const sTerm = x.times(kExp).div(1e8);  // x * k^(1 + x / 10^12) / 10^8
-    const ds_dx = kExp.div(1e8).times(new Decimal(1).plus(x.times(ln_k).div(1e12)));  // Derivative of the exponential term
-
-    const v = sTerm.plus(100000);  // v(x) = x * k^(1 + x / 10^12) / 10^8 + 100000
-    const dv_dx = ds_dx;  // Derivative of v(x)
-
-    // f'(x) = v(x) + (x - s) * dv/dx
-    return v.plus(x.minus(s).times(dv_dx));
-}
-export function findRoot(a: Decimal, s: Decimal, k: Decimal): Decimal {
-    // First, use the bisection method to find a good initial guess
-    const initialGuess = bisectionMethod(a, s, k);
-
-    // Now, refine the guess using Newton-Raphson
-    let x = initialGuess;
-    const epsilon = new Decimal('1e-5');  // Relative tolerance
-    const maxIterations = 1000;
-
-    for (let i = 0; i < maxIterations; i++) {
-        const fx = f(x, a, s, k);
-        const fpx = fPrime(x, s, k);
-
-        if (fpx.abs().lessThan('1e-30')) {
-            throw new Error('Derivative is too small; Newton-Raphson method fails.');
-        }
-
-        const x_new = x.minus(fx.div(fpx));
-        const tolerance = x_new.abs().times(epsilon);
-
-        if (x_new.minus(x).abs().lessThan(tolerance)) {
-            return x_new;
-        }
-
-        x = x_new;
-    }
-
-    throw new Error('Newton-Raphson method did not converge within the maximum number of iterations.');
-}
-function bisectionMethod(a: Decimal, s: Decimal, k: Decimal): Decimal {
-    let x_low = new Decimal('1');  // Lower bound
-    let x_high = a;  // Upper bound (since a = (x-s) * something, x cannot be larger than a)
-    const maxIterations = 1000;
-    const epsilon = new Decimal('1e-5');
-
-    for (let i = 0; i < maxIterations; i++) {
-        const x_mid = x_low.plus(x_high).div(2);
-        const f_mid = f(x_mid, a, s, k);
-
-        if (f_mid.abs().lessThan(epsilon)) {
-            return x_mid;
-        }
-
-        const f_low = f(x_low, a, s, k);
-
-        if (f_low.times(f_mid).lessThan(0)) {
-            x_high = x_mid;
-        } else {
-            x_low = x_mid;
-        }
-
-        // If the interval is sufficiently small, return the midpoint
-        if (x_high.minus(x_low).lessThan(epsilon)) {
-            return x_mid;
+            return { txid, confirmed };
+        } catch (error) {
+            console.error("Transaction error:", error);
+            if (callback) callback(`Error: ${error instanceof Error ? error.message : String(error)}`, 'error');
+            throw error;
         }
     }
 
-    throw new Error('Bisection method did not converge within the maximum number of iterations.');
-}
-export const updateFloorIx = async (
-    quantity: anchor.BN,
-    user: anchor.web3.PublicKey,
-    market: anchor.web3.PublicKey,
-    program: anchor.Program<Limitless>,
-): Promise<anchor.web3.TransactionInstruction> => {
-    //TODO pass in market as parameter
-    //let marketState = await program.account.marketState.fetch(market);
-    const ix = await program.methods
-        .updateFloor(quantity)
-        .accounts({
-            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-            marketState: market,
-            systemProgram: anchor.web3.SystemProgram.programId
-        }).instruction()
-    return ix
-}
-export const boostFloorIx = async (
-    user: anchor.web3.PublicKey,
-    market: anchor.web3.PublicKey,
-    program: anchor.Program<Limitless>,
-): Promise<anchor.web3.TransactionInstruction> => {
-    //TODO pass in market as parameter
-    let marketState = await program.account.marketState.fetch(market);
-    const ix = await program.methods
-        .boostFloor()
-        .accounts({
-            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-            marketState: market,
-            quoteTokenVault: marketState.quoteMintTokenAddress,
-            quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: anchor.web3.SystemProgram.programId,
-        }).instruction()
-    return ix
-}
-export function getPrice(x: number, k: number) {
-    return ((x * Math.pow(k, 1 + x / 1e12)) / 1e8) + 100000;
-}
-export async function createDepositAccountIx(
-    user: anchor.web3.PublicKey,
-    market: anchor.web3.PublicKey,
-    program: anchor.Program<Limitless>,
-): Promise<anchor.web3.TransactionInstruction> {
-    let [depositAccountAddress, depositAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
-        [market.toBuffer(), user.toBuffer()],
-        program.programId
-    );
-    const ix = await program.methods
-        .createDepositAccount()
-        .accounts({
-            user: user,
-            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-            marketState: market,
-            depositAccount: depositAccountAddress,
-        }).instruction()
-    return ix
-}
-export async function depositIx(
-    amount: anchor.BN,
-    user: anchor.web3.PublicKey,
-    market: anchor.web3.PublicKey,
-    program: anchor.Program<Limitless>,
-    userBaseTokenAddress: anchor.web3.PublicKey,
-): Promise<anchor.web3.TransactionInstruction> {
-    let marketState = await program.account.marketState.fetch(market);
-    let [depositAccountAddress, depositAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
-        [market.toBuffer(), user.toBuffer()],
-        program.programId
-    );
-    const ix = await program.methods
-        .depositBase(amount)
-        .accounts({
-            user: user,
-            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-            marketState: market,
-            baseMint: marketState.baseMintAddress,
-            userBaseToken: userBaseTokenAddress,
-            baseDepositVault: marketState.baseDepositAddress,
-            depositAccount: depositAccountAddress
-        }).instruction();
-    return ix;
-}
-export function quantityFromProceedsExpo(
-    floorq: bigint,
-    proceedsNormalized: bigint,
-    gradient: bigint,
-    divisorPow: bigint,
-    offset: bigint,
-    quoteDecimals: number,
-): bigint {
-    // Calculate the price using the same parameters
-    const price = BigInt(Math.floor(getPrice(Number(floorq), 1.5)));
+    //create metadata
+    async uploadImage(
+        imageFile: File,
+        rpcUrl: string
+    ): Promise<string> {
+        if (!this.program) throw new Error("Program not initialized");
+        const umi = createUmi(rpcUrl)
+            .use(walletAdapterIdentity(this.wallet.payer))
+            .use(mplTokenMetadata())
+            .use(irysUploader());
 
-    // Compute the base power
-    const basePow = BigInt(10) ** BigInt(quoteDecimals);
+        if (imageFile) {
+            // Wrap FileReader in a Promise to await the file reading.
+            const fileBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    // Resolve with the file data when reading is complete.
+                    resolve(reader.result as ArrayBuffer);
+                };
+                reader.onerror = () => {
+                    // Reject if there is an error.
+                    reject(reader.error);
+                };
+                reader.readAsArrayBuffer(imageFile);
+            });
 
-    // Adjust proceedsNormalized back to its original value if it was decreased
-    let adjustedProceeds = proceedsNormalized;
-    if (proceedsNormalized > BigInt(1)) {
-        adjustedProceeds = proceedsNormalized + BigInt(1);
+            const fileBuff = new Uint8Array(fileBuffer);
+            const filename = imageFile.name.split('.')[0];
+            const filetype = imageFile.name.split('.')[1];
+            const contentType = imageFile.type;
+
+            // Create the generic file using the file buffer.
+            let genericFile = createGenericFile(fileBuff, `${filename}.${filetype}`, {
+                displayName: filename,
+                contentType: contentType,
+                extension: filetype,
+            });
+
+            // Upload the file using the umi uploader.
+            const [imageUri] = await umi.uploader.upload([genericFile]);
+            return imageUri
+        }
+
+        throw new Error("No image file provided");
+    };
+
+    async uploadMetadata(
+        rpcUrl: string,
+        name: string,
+        symbol: string,
+        description: string,
+        website: string,
+        telegram: string,
+        x: string,
+        discord: string,
+        coverUri: string,
+        logoUri: string,
+        coverYPos: string,
+        logoYPos: string
+    ): Promise<string> {
+        if (!this.program) throw new Error("Program not initialized");
+        try {
+            let metadata = {
+                "name": `${name}`,
+                "symbol": `${symbol}`,
+                "description": `${description}`,
+                "image": `${logoUri}`,
+                "website": `${website}`,
+                "telegram": `${telegram}`,
+                "twitter": `${x}`,
+                "x": `${x}`,
+                "discord": `${discord}`,
+                "attributes": [
+                    {
+                        "trait_type": "cover_photo",
+                        "value": `${coverUri}`
+                    },
+                    {
+                        "trait_type": "cover_photo_pos",
+                        "value": `${coverYPos}`
+                    },
+                    {
+                        "trait_type": "logo_pos",
+                        "value": `${logoYPos}`
+                    }
+                ]
+            }
+            const umi = createUmi(rpcUrl).use(walletAdapterIdentity(this.wallet.payer)).use(mplTokenMetadata()).use(irysUploader());
+            const jsonUri = await umi.uploader.uploadJson(metadata)
+            
+            return jsonUri
+        } catch (e: any) {
+            console.log(e)
+        }
+    }
+    //create market
+    async createToken(
+        userQuoteTokenAddress: PublicKey,
+        quoteMint: PublicKey,
+        startTime: number,
+        buyFee: number,
+        sellFee: number,
+        creatorSplitFee: number,
+        presaleDuration: number,
+        presaleFee: number,
+        presaleSplit: number,
+        name: string,
+        ticker: string,
+        metadataUri: string,
+        baseSplit: boolean,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean; marketStateAddress: PublicKey }> {
+        if (!this.program) throw new Error("Program not initialized");
+        if (!this.wallet.publicKey) throw new Error("Wallet not connected");
+
+        try {
+            if (callback) callback("Creating token...", 'info');
+
+            const MARKET_ID = Math.random().toString(36).slice(2, 8).toUpperCase();
+
+            let ixes: TransactionInstruction[] = [];
+            ixes.push(ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }));
+
+            const createIxRes = await createIx(
+                this.wallet.publicKey,
+                this.program,
+                userQuoteTokenAddress,
+                quoteMint,
+                startTime,
+                buyFee,
+                sellFee,
+                creatorSplitFee,
+                presaleDuration,
+                presaleFee,
+                presaleSplit,
+                name,
+                ticker,
+                metadataUri,
+                MARKET_ID,
+                baseSplit
+            );
+
+            const createVaultsIxRes = await createVaultsIxes(
+                this.wallet.publicKey,
+                this.program,
+                quoteMint,
+                MARKET_ID
+            );
+
+            ixes.push(createIxRes);
+            ixes.push(...createVaultsIxRes);
+
+            const { txid, confirmed } = await this.buildAndSendTransaction(ixes, callback);
+
+            const marketBaseAddress = new PublicKey(BASE_ADDRESS);
+            const [marketStateAddress] = await anchor.web3.PublicKey.findProgramAddress(
+                [marketBaseAddress.toBuffer(), Buffer.from(MARKET_ID)],
+                this.program.programId
+            );
+
+            return { txid, confirmed, marketStateAddress };
+        } catch (error) {
+            console.error("Create token error:", error);
+            if (callback) callback(`Error creating token: ${error instanceof Error ? error.message : String(error)}`, 'error');
+            throw error;
+        }
+    }
+    //creator claim fees 
+    async claimFees(
+        marketState: any,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        if (!this.program) throw new Error("Program not initialized");
+        if (!this.wallet.publicKey) throw new Error("Wallet not connected");
+
+        try {
+            if (callback) callback("Preparing to claim fees...", 'info');
+
+            const associatedQuoteAddress = await getAssociatedTokenAddress(
+                new PublicKey(marketState.quotemintaddress),
+                this.wallet.publicKey
+            );
+
+            let ixes: TransactionInstruction[] = [];
+            ixes.push(ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }));
+
+            // Check if quote token account exists and create if needed
+            try {
+                await getAccount(this.connection, associatedQuoteAddress);
+            } catch (error) {
+                // If account doesn't exist, create it
+                const quoteIns = createAssociatedTokenAccountInstruction(
+                    this.wallet.publicKey,
+                    associatedQuoteAddress,
+                    this.wallet.publicKey,
+                    new PublicKey(marketState.quotemintaddress)
+                );
+                ixes.push(quoteIns);
+            }
+
+            const claimIx = await claimFeesIx(
+                associatedQuoteAddress,
+                new PublicKey(marketState.address),
+                this.program
+            );
+            ixes.push(claimIx);
+
+            return await this.buildAndSendTransaction(ixes, callback);
+        } catch (error) {
+            console.error("Claim fees error:", error);
+            if (callback) callback(`Error claiming fees: ${error instanceof Error ? error.message : String(error)}`, 'error');
+            throw error;
+        }
+    }
+    //creator claim base allocation
+    async claimBaseAllocation(
+        marketState: any,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        if (!this.program) throw new Error("Program not initialized");
+        if (!this.wallet.publicKey) throw new Error("Wallet not connected");
+
+        try {
+            if (callback) callback("Preparing to claim allocation...", 'info');
+
+            const associatedBaseAddress = await getAssociatedTokenAddress(
+                new PublicKey(marketState.basemintaddress),
+                this.wallet.publicKey
+            );
+
+            let ixes: TransactionInstruction[] = [];
+            ixes.push(ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }));
+
+            // Check if base token account exists and create if needed
+            try {
+                await getAccount(this.connection, associatedBaseAddress);
+            } catch (error) {
+                // If account doesn't exist, create it
+                const baseIns = createAssociatedTokenAccountInstruction(
+                    this.wallet.publicKey,
+                    associatedBaseAddress,
+                    this.wallet.publicKey,
+                    new PublicKey(marketState.basemintaddress)
+                );
+                ixes.push(baseIns);
+            }
+
+            const claimIx = await claimBaseAllocationIx(
+                this.wallet.publicKey,
+                new PublicKey(marketState.address),
+                associatedBaseAddress,
+                this.program
+            );
+            ixes.push(claimIx);
+
+            return await this.buildAndSendTransaction(ixes, callback);
+        } catch (error) {
+            console.error("Claim base allocation error:", error);
+            if (callback) callback(`Error claiming allocation: ${error instanceof Error ? error.message : String(error)}`, 'error');
+            throw error;
+        }
+    }
+    //creator buy
+    async creatorBuy(
+        quantity: anchor.BN,
+        maxCost: anchor.BN,
+        userQuoteToken: PublicKey,
+        market: PublicKey,
+        marketState: any,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        // Build creator buy instruction
+        const instructions = [
+            ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
+
+        ];
+        const ix = await buyIxCreator(
+            quantity,
+            maxCost,
+            this.wallet.publicKey,
+            userQuoteToken,
+            market,
+            marketState,
+            this.program
+        )
+        instructions.push(ix)
+        return await this.buildAndSendTransaction(instructions, callback);
+    }
+    //presale buy
+    async presaleBuy(
+        quantity: anchor.BN,
+        maxCost: anchor.BN,
+        userQuoteToken: PublicKey,
+        market: PublicKey,
+        marketState: any,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        // Build presale buy instruction
+
+        const instructions = [
+            ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
+
+        ];
+
+        const ix = await presaleBuyIx(
+            quantity,
+            maxCost,
+            this.wallet.publicKey,
+            userQuoteToken,
+            market,
+            marketState,
+            this.program
+        );
+        instructions.push(ix)
+        return await this.buildAndSendTransaction(instructions, callback);
+    }
+    async claimPresale(
+        couponAddresses: PublicKey[],
+        market: PublicKey,
+        marketState: any,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        if (!this.program) throw new Error("Program not initialized");
+        if (!this.wallet.publicKey) throw new Error("Wallet not connected");
+        try {
+            if (callback) callback("Preparing to claim presale tokens...", 'info');
+
+            // Limit to maximum 10 coupons per transaction to avoid exceeding transaction size limits
+            const maxCouponsPerTx = 10;
+            const batchSize = Math.min(couponAddresses.length, maxCouponsPerTx);
+            let associatedBaseAddress = await getAssociatedTokenAddress(marketState.baseMintAddress, this.wallet.publicKey);
+            let userBaseToken = null;
+            try {
+                userBaseToken = await getAccount(this.program.provider.connection, associatedBaseAddress);
+            } catch (error) {
+
+            }
+            const instructions: TransactionInstruction[] = [
+                ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 })
+            ];
+            if (!userBaseToken) {
+                let baseIns = await createAssociatedTokenAccountInstruction(
+                    this.wallet.publicKey,
+                    associatedBaseAddress,
+                    this.wallet.publicKey,
+                    marketState.baseMintAddress
+                )
+                instructions.push(baseIns)
+            }
+            // Create claim instruction for each coupon address (up to the batch limit)
+            for (let i = 0; i < batchSize; i++) {
+                const couponIx = await claimPresaleIx(
+                    couponAddresses[i],
+                    this.wallet.publicKey,
+                    userBaseToken,
+                    market,
+                    marketState,
+                    this.program
+                );
+                instructions.push(couponIx);
+            }
+            return await this.buildAndSendTransaction(instructions, callback);
+        } catch (error) {
+            console.error("Claim presale error:", error);
+            if (callback) callback(`Error claiming presale tokens: ${error instanceof Error ? error.message : String(error)}`, 'error');
+            throw error;
+        }
+    }
+    async buy(
+        quantity: anchor.BN,
+        maxCost: anchor.BN,
+        market: PublicKey,
+        marketState: any,
+        userQuoteToken: PublicKey,
+        cqd_guess: anchor.BN,
+        ncqd_guess: anchor.BN,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        let associatedBaseAddress = await getAssociatedTokenAddress(marketState.baseMintAddress, this.wallet.publicKey);
+        let userBaseToken = null;
+        try {
+            userBaseToken = await getAccount(this.program.provider.connection, associatedBaseAddress);
+        } catch (error) {
+
+        }
+        const instructions = [
+            ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
+
+        ];
+        if (!userBaseToken) {
+            let baseIns = await createAssociatedTokenAccountInstruction(
+                this.wallet.publicKey,
+                associatedBaseAddress,
+                this.wallet.publicKey,
+                marketState.baseMintAddress
+            )
+            console.log("pushed base xie")
+            instructions.push(baseIns)
+        }
+        const ix = await buyIx(
+            quantity,
+            maxCost,
+            this.wallet.publicKey,
+            userBaseToken,
+            userQuoteToken,
+            market,
+            this.program,
+            marketState,
+            cqd_guess,
+            ncqd_guess
+        );
+        instructions.push(ix)
+        return await this.buildAndSendTransaction(instructions, callback);
+    }
+    async sell(
+        quantity: anchor.BN,
+        minProceeds: anchor.BN,
+        market: PublicKey,
+        marketState: any,
+        userBaseToken: PublicKey,
+        cqd_guess: anchor.BN,
+        ncqd_guess: anchor.BN,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        let associatedQuoteAddress = await getAssociatedTokenAddress(marketState.quoteMintAddress, this.wallet.publicKey);
+        let userQuoteToken = null;
+        try {
+            userQuoteToken = await getAccount(this.program.provider.connection, associatedQuoteAddress);
+        } catch (error) {
+
+        }
+        const instructions = [
+            ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 })
+        ];
+        if (!userQuoteToken) {
+            let quoteIns = await createAssociatedTokenAccountInstruction(
+                this.wallet.publicKey,
+                associatedQuoteAddress,
+                this.wallet.publicKey,
+                marketState.quoteMintAddress
+            )
+            console.log("pushed base xie")
+            instructions.push(quoteIns)
+        }
+
+        const ix = await sellIx(
+            quantity,
+            minProceeds,
+            this.wallet.publicKey,
+            userBaseToken,
+            userQuoteToken,
+            market,
+            marketState,
+            this.program,
+            cqd_guess,
+            ncqd_guess
+        );
+        instructions.push(ix)
+        return await this.buildAndSendTransaction(instructions, callback);
+    }
+    async sellFloor(
+        quantity: anchor.BN,
+        minProceeds: anchor.BN,
+        market: PublicKey,
+        marketState: any,
+        userBaseToken: PublicKey,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        let associatedQuoteAddress = await getAssociatedTokenAddress(marketState.quoteMintAddress, this.wallet.publicKey);
+        let userQuoteToken = null;
+        try {
+            userQuoteToken = await getAccount(this.program.provider.connection, associatedQuoteAddress);
+        } catch (error) {
+
+        }
+        const instructions = [
+            ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 })
+        ];
+        if (!userQuoteToken) {
+            let quoteIns = await createAssociatedTokenAccountInstruction(
+                this.wallet.publicKey,
+                associatedQuoteAddress,
+                this.wallet.publicKey,
+                marketState.quoteMintAddress
+            )
+            console.log("pushed base xie")
+            instructions.push(quoteIns)
+        }
+        const ix = await sellFloorIx(
+            quantity,
+            minProceeds,
+            this.wallet.publicKey,
+            userBaseToken,
+            userQuoteToken,
+            market,
+            marketState,
+            this.program,
+        );
+        instructions.push(ix)
+        return await this.buildAndSendTransaction(instructions, callback);
+    }
+    //todo sellWithFloor
+    async createDepositAccount(
+        market: PublicKey,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        const ix = await createDepositAccountIx(
+            this.wallet.publicKey,
+            market,
+            this.program
+        );
+        const instructions = [
+            ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
+            ix
+        ];
+        return await this.buildAndSendTransaction(instructions, callback);
+    }
+    async deposit(
+        amount: anchor.BN,
+        market: PublicKey,
+        marketState: any,
+        userBaseTokenAddress: PublicKey,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        const ix = await depositIx(
+            amount,
+            this.wallet.publicKey,
+            market,
+            marketState,
+            this.program,
+            userBaseTokenAddress
+        );
+        const instructions = [
+            ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
+            ix
+        ];
+        return await this.buildAndSendTransaction(instructions, callback);
+    }
+    async withdraw(
+        amount: anchor.BN,
+        market: PublicKey,
+        marketState: any,
+        userBaseTokenAddress: PublicKey,
+        quoteMint: PublicKey,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        const ix = await withdrawIx(
+            amount,
+            this.wallet.publicKey,
+            market,
+            marketState,
+            this.program,
+            userBaseTokenAddress,
+            quoteMint
+        );
+        const instructions = [
+            ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
+            ix
+        ];
+        return await this.buildAndSendTransaction(instructions, callback);
+    }
+    async borrow(
+        amount: anchor.BN,
+        market: PublicKey,
+        marketState: any,
+        userQuoteTokenAddress: PublicKey,
+        quoteMint: PublicKey,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        const ix = await borrowIx(
+            amount,
+            this.wallet.publicKey,
+            market,
+            marketState,
+            this.program,
+            userQuoteTokenAddress,
+            quoteMint
+        );
+        const instructions = [
+            ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
+            ix
+        ];
+        return await this.buildAndSendTransaction(instructions, callback);
+    }
+    async repay(
+        amount: anchor.BN,
+        market: PublicKey,
+        marketState: any,
+        userQuoteTokenAddress: PublicKey,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        const ix = await repayIx(
+            amount,
+            this.wallet.publicKey,
+            market,
+            marketState,
+            this.program,
+            userQuoteTokenAddress
+        );
+        const instructions = [
+            ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
+            ix
+        ];
+        return await this.buildAndSendTransaction(instructions, callback);
+    }
+    async updateFloor(
+        quantity: anchor.BN,
+        initGuess: anchor.BN,
+        market: PublicKey,
+
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        const ix = await updateFloorIx(
+            quantity,
+            initGuess,
+            market,
+            this.program
+        )
+        const instructions = [
+            ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
+            ix
+        ];
+        return await this.buildAndSendTransaction(instructions, callback);
+    }
+    async boostFloor(
+        market: PublicKey,
+        marketState: any,
+        guess1: anchor.BN,
+        guess2: anchor.BN,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        const ix = await boostFloorIx(
+            market,
+            marketState,
+            this.program,
+            guess1,
+            guess2
+        )
+        const instructions = [
+            ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
+            ix
+        ];
+        return await this.buildAndSendTransaction(instructions, callback);
     }
 
-    // Ensure price is not zero to prevent division by zero
-    if (price === BigInt(0)) {
-        throw new Error("Division by zero error: price is zero.");
+    //getters
+    //types
+
+    //get coupons
+    async getCoupons(
+        market: PublicKey,
+        user: PublicKey
+    ): Promise<
+        Array<typeof this.program.account.presaleCoupon['fetch'] extends (...args: any) => Promise<infer T> ? T : never>
+    > {
+        //console.log("get coupons")
+        if (!this.program) {
+            throw new Error("❌ Program client not initialized!")
+        }
+        //fetch coupons
+        let couponsData = await this.program.account.presaleCoupon.all([
+            {
+                memcmp: {
+                    offset: 8 + 20,
+                    bytes: user.toBase58()
+                }
+            },
+            {
+                memcmp: {
+                    offset: 8 + 20 + 32,
+                    bytes: market.toBase58()
+                }
+            }
+        ]);
+        // Map ProgramAccount objects to their account data
+        return couponsData.map(coupon => coupon.account);
     }
 
-    // Calculate the quantity by rearranging the original formula
-    const quantity = (adjustedProceeds * basePow) / price;
-
-    return quantity;
-}
-export async function withdrawIx(
-    amount: anchor.BN,
-    user: anchor.web3.PublicKey,
-    market: anchor.web3.PublicKey,
-    program: anchor.Program<Limitless>,
-    userBaseTokenAddress: anchor.web3.PublicKey,
-    quoteMint: anchor.web3.PublicKey
-): Promise<anchor.web3.TransactionInstruction> {
-    let marketState = await program.account.marketState.fetch(market);
-    let [depositAccountAddress, depositAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
-        [market.toBuffer(), user.toBuffer()],
-        program.programId
-    );
-    let [lendingPoolAddress, lendingPoolBump] = await anchor.web3.PublicKey.findProgramAddress(
-        [new anchor.web3.PublicKey(BASE_ADDRESS).toBuffer(), quoteMint.toBuffer()],
-        program.programId
-      );
-    const ix = await program.methods
-        .withdrawBase(amount)
-        .accounts({
-            user: user,
-            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-            marketState: market,
-            // lendingPool: lendingPoolAddress,
-            baseMint: marketState.baseMintAddress,
-            userBaseToken: userBaseTokenAddress,
-            baseDepositVault: marketState.baseDepositAddress,
-            depositAccount: depositAccountAddress
-        }).instruction();
-    return ix;
-}
-export function floorProceedsExpo(
-    floorq: bigint,
-    quantity: bigint,
-    gradient: bigint,
-    divisorPow: bigint,
-    offset: bigint,
-    quoteDecimals: number,
-): bigint {
-    // Calculate the price using the same parameters
-    const price = BigInt(Math.floor(getPrice(Number(floorq), 1.5)));
-
-    // Compute the base power
-    const basePow = BigInt(10) ** BigInt(quoteDecimals);
-
-    // Calculate the total proceeds
-    const total = price * quantity;
-
-    // Calculate proceeds normalized
-    let proceedsNormalized = total / basePow;
-
-    // Subtract 1 if proceedsNormalized is greater than 1
-    if (proceedsNormalized > BigInt(1)) {
-        proceedsNormalized -= BigInt(1);
+    //get market
+    async getMarket(
+        market: PublicKey
+    ): Promise<typeof this.program.account.marketState['fetch'] extends (...args: any) => Promise<infer T> ? T : never> {
+        if (!this.program) {
+            throw new Error("❌ Program client not initialized!");
+        }
+        let marketState = await this.program.account.marketState.fetch(market);
+        return marketState;
     }
 
-    // Logging the proceedsNormalized value (equivalent to Rust's msg!)
-    //console.log(`floor proceeds - proceeds normalized: ${proceedsNormalized}`);
+    //get markets
+    async getMarkets(
+        markets: PublicKey[]
+    ): Promise<
+        Array<typeof this.program.account.marketState['fetch'] extends (...args: any) => Promise<infer T> ? T : never>
+    > {
+        if (!this.program) {
+            throw new Error("❌ Program client not initialized!");
+        }
 
-    return proceedsNormalized;
-}
-export async function borrowIx(
-    amount: anchor.BN,
-    user: anchor.web3.PublicKey,
-    market: anchor.web3.PublicKey,
-    program: anchor.Program<Limitless>,
-    userQuoteTokenAddress: anchor.web3.PublicKey,
-    quoteMint: anchor.web3.PublicKey
-): Promise<anchor.web3.TransactionInstruction> {
-    let marketState = await program.account.marketState.fetch(market);
-    let [depositAccountAddress, depositAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
-        [market.toBuffer(), user.toBuffer()],
-        program.programId
-    );
-    let [lendingPoolAddress, lendingPoolBump] = await anchor.web3.PublicKey.findProgramAddress(
-        [new anchor.web3.PublicKey(BASE_ADDRESS).toBuffer(), quoteMint.toBuffer()],
-        program.programId
-      );
-    const ix = await program.methods
-        .borrowQuote(amount)
-        .accounts({
-            user: user,
-            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-            marketState: market,
-            // lendingPool: lendingPoolAddress,
-            userQuoteToken: userQuoteTokenAddress,
-            quoteTokenVault: marketState.quoteMintTokenAddress,
-            quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
-            depositAccount: depositAccountAddress
-        }).instruction();
-    return ix;
-}
-export async function repayIx(
-    amount: anchor.BN,
-    user: anchor.web3.PublicKey,
-    market: anchor.web3.PublicKey,
-    program: anchor.Program<Limitless>,
-    userQuoteTokenAddress: anchor.web3.PublicKey,
-): Promise<anchor.web3.TransactionInstruction> {
-    let marketState = await program.account.marketState.fetch(market);
-    let [depositAccountAddress, depositAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
-        [market.toBuffer(), user.toBuffer()],
-        program.programId
-    );
-    const ix = await program.methods
-        .repayQuote(amount)
-        .accounts({
-            user: user,
-            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
-            marketState: market,
-            userQuoteToken: userQuoteTokenAddress,
-            quoteTokenVault: marketState.quoteMintTokenAddress,
-            quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
-            depositAccount: depositAccountAddress
-        }).instruction();
-    return ix;
-}
-export const testFunc1 = async (a: number): Promise<number> => {
-    return a + 1;
-}
-export const testFunc = async (): Promise<number> => {
-    return 0;
+        return Promise.all(markets.map(market => this.program.account.marketState.fetch(market)));
+    }
+
+    //get deposit account
+    async getDepositAccount(
+        market: PublicKey
+    ): Promise<typeof this.program.account.depositAccount['fetch'] extends (...args: any) => Promise<infer T> ? T : never> {
+        if (!this.program) {
+            throw new Error("❌ Program client not initialized!");
+        }
+        let [depositAccountAddress] = await anchor.web3.PublicKey.findProgramAddress(
+            [market.toBuffer(), this.wallet.publicKey.toBuffer()],
+            this.program.programId
+        );
+        let depositAccount = await this.program.account.depositAccount.fetch(depositAccountAddress);
+        return depositAccount;
+    }
+    
+    //get top markets
+
+    // Utility function to parse error messages
+    isolateErrorMessage(errorObj: any): string | null {
+        // Check if transactionLogs exist
+        if (!errorObj?.transactionLogs || !errorObj.transactionLogs.length) {
+            return null;
+        }
+
+        // Loop through each log entry
+        for (const log of errorObj.transactionLogs) {
+            // Look for a log that contains "Error Message:"
+            if (log.includes("Error Message:")) {
+                // Split the log at "Error Message:" and take the latter part
+                const parts = log.split("Error Message:");
+                if (parts.length > 1) {
+                    // Trim any whitespace and optionally remove a trailing period
+                    let message = parts[1].trim();
+                    if (message.endsWith(".")) {
+                        message = message.slice(0, -1);
+                    }
+                    return message;
+                }
+            }
+        }
+
+        // Return null if no error message is found
+        return null;
+    }
 }
 
+// Re-export useful types and functions
+export {
+    BASE_ADDRESS,
+    createProgramConnection,
+    getPrice,
+    quantityFromProceedsExpo,
+    quantityFromProceedsExpoWPrice,
+    floorProceedsExpo,
+    floorProceedsExpoWPrice
+} from './ix-builder';
 
-// src/index.ts
-export const greet = (name: string): string => {
-    return `Hello, ${name}!`;
-};
+export type { MarketState };
 
-//todo, play with scaler value to get right pricing cost ratio
-//play with offset too cus maybe the early supply snipe is quite big
-//TODO - floor update must account for borrowed amount?
 
-//IDEA LTV borrow dampener that gets smaller as deposited timer goes on, can actully only borrow 1% or less in the beginning of deposit
-//also have community pool where quote can be deposited to be borrowed against floor price price and ltv
-//will there be an arb to another pool if the rate is low on main pool? have interest rate where u have to repay abit more than u borrowed.
+
