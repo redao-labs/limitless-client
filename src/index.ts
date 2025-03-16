@@ -41,7 +41,7 @@ import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
 import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata';
 import { irysUploader } from '@metaplex-foundation/umi-uploader-irys';
-import { createGenericFile } from '@metaplex-foundation/umi';
+import { createGenericFile, createSignerFromKeypair, Keypair as KP, publicKey } from '@metaplex-foundation/umi';
 //smart contract api
 
 type TxProgressCallback = (message: string, type: 'info' | 'success' | 'error') => void;
@@ -164,40 +164,44 @@ export class LimitlessSDK {
 
     //create metadata
     async uploadImage(
-        imageFile: File,
+        fileBuff: Buffer,
+        fileName: string,
+        fileType: string,
+        contentType: string,
         rpcUrl: string
     ): Promise<string> {
         if (!this.program) throw new Error("Program not initialized");
+        const mKeypair: KP = { publicKey: publicKey(this.wallet.payer.publicKey.toBase58()), secretKey: this.wallet.payer.secretKey }
         const umi = createUmi(rpcUrl)
-            .use(walletAdapterIdentity(this.wallet.payer))
+            // .use(walletAdapterIdentity(this.wallet.payer))
             .use(mplTokenMetadata())
             .use(irysUploader());
-
-        if (imageFile) {
+        const signerKp = createSignerFromKeypair(umi, mKeypair)
+        umi.identity = signerKp
+        umi.payer = signerKp
+        if (fileBuff) {
             // Wrap FileReader in a Promise to await the file reading.
-            const fileBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    // Resolve with the file data when reading is complete.
-                    resolve(reader.result as ArrayBuffer);
-                };
-                reader.onerror = () => {
-                    // Reject if there is an error.
-                    reject(reader.error);
-                };
-                reader.readAsArrayBuffer(imageFile);
-            });
+            // const fileBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
+            //     const reader = new FileReader();
+            //     reader.onload = () => {
+            //         // Resolve with the file data when reading is complete.
+            //         resolve(reader.result as ArrayBuffer);
+            //     };
+            //     reader.onerror = () => {
+            //         // Reject if there is an error.
+            //         reject(reader.error);
+            //     };
+            //     reader.readAsArrayBuffer(imageFile);
+            // });
 
-            const fileBuff = new Uint8Array(fileBuffer);
-            const filename = imageFile.name.split('.')[0];
-            const filetype = imageFile.name.split('.')[1];
-            const contentType = imageFile.type;
+            // const fileBuff = new Uint8Array(fileBuffer);
+
 
             // Create the generic file using the file buffer.
-            let genericFile = createGenericFile(fileBuff, `${filename}.${filetype}`, {
-                displayName: filename,
+            let genericFile = createGenericFile(fileBuff, `${fileName}.${fileType}`, {
+                displayName: fileName,
                 contentType: contentType,
-                extension: filetype,
+                extension: fileType,
             });
 
             // Upload the file using the umi uploader.
@@ -249,9 +253,12 @@ export class LimitlessSDK {
                     }
                 ]
             }
+            const mKeypair: KP = { publicKey: publicKey(this.wallet.payer.publicKey.toBase58()), secretKey: this.wallet.payer.secretKey }
             const umi = createUmi(rpcUrl).use(walletAdapterIdentity(this.wallet.payer)).use(mplTokenMetadata()).use(irysUploader());
+            const signerKp = createSignerFromKeypair(umi, mKeypair)
+            umi.identity = signerKp
+            umi.payer = signerKp
             const jsonUri = await umi.uploader.uploadJson(metadata)
-            
             return jsonUri
         } catch (e: any) {
             console.log(e)
@@ -265,7 +272,7 @@ export class LimitlessSDK {
         buyFee: number,
         sellFee: number,
         creatorSplitFee: number,
-        presaleDuration: number,
+        presaleOffset: number,
         presaleFee: number,
         presaleSplit: number,
         name: string,
@@ -294,7 +301,7 @@ export class LimitlessSDK {
                 buyFee,
                 sellFee,
                 creatorSplitFee,
-                presaleDuration,
+                presaleOffset,
                 presaleFee,
                 presaleSplit,
                 name,
@@ -878,7 +885,7 @@ export class LimitlessSDK {
         let depositAccount = await this.program.account.depositAccount.fetch(depositAccountAddress);
         return depositAccount;
     }
-    
+
     //get top markets
 
     // Utility function to parse error messages
