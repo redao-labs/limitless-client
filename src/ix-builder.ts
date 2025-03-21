@@ -345,7 +345,7 @@ export async function claimPresaleIx(
       }).instruction()
     return ix
 }
-export const buyIx = async (
+export async function buyIx(
     quantity: anchor.BN,
     maxCost: anchor.BN,
     user: anchor.web3.PublicKey,
@@ -382,7 +382,7 @@ export const buyIx = async (
         }).instruction()
     return ix
 }
-export const buyIxCreator = async (
+export  async function buyIxCreator(
     quantity: anchor.BN,
     maxCost: anchor.BN,
     user: anchor.web3.PublicKey,
@@ -415,7 +415,7 @@ export const buyIxCreator = async (
         }).instruction()
     return ix
 }
-export const sellIx = async (
+export  async function sellIx(
     quantity: anchor.BN,
     minProceeds: anchor.BN,
     user: anchor.web3.PublicKey,
@@ -452,7 +452,7 @@ export const sellIx = async (
         }).instruction()
     return ix
 }
-export const sellFloorIx = async (
+export  async function sellFloorIx(
     quantity: anchor.BN,
     minProceeds: anchor.BN,
     user: anchor.web3.PublicKey,
@@ -482,7 +482,7 @@ export const sellFloorIx = async (
         }).instruction()
     return ix
 }
-export const updateFloorIx = async (
+export  async function updateFloorIx(
     quantity: anchor.BN,
     initGuess: anchor.BN,
     market: anchor.web3.PublicKey,
@@ -499,7 +499,7 @@ export const updateFloorIx = async (
         }).instruction()
     return ix
 }
-export const boostFloorIx = async (
+export  async function boostFloorIx(
     market: anchor.web3.PublicKey,
     marketState: any,
     program: anchor.Program<Limitless>,
@@ -653,56 +653,70 @@ export async function repayIx(
 
 //math
 export const lookupLimitUp = async (
-    cost: number,
-    constant: number,
-    startQ: number,
-    quoteDecimals: number
-): Promise<number> => {
-    let base = 10;
-    let basePow = Math.pow(base, Number(quoteDecimals))
-    let costX = cost * basePow
-    let newX = solveForXUp(new Decimal(costX), new Decimal(constant), new Decimal(startQ))
-    return newX.toNumber()
+    cost: Decimal,
+    constant: Decimal,
+    startQ: Decimal,
+    quoteDecimals: Decimal,
+    divisorPow: Decimal,
+    pow1: Decimal,
+    pow2: Decimal
+): Promise<Decimal> => {
+    // Convert all inputs to Decimal if they aren't already
+
+    // Calculate costX using Decimal operations
+    const basePow = new Decimal(10).pow(quoteDecimals);
+    const costX = cost.times(basePow);
+
+    // Solve using the Decimal-based implementation
+    const newX = solveForXUp(costX, constant, startQ, divisorPow, pow1, pow2);
+
+    return newX;
 }
-function solveForXUp(a: Decimal, k: Decimal, z: Decimal): Decimal {
-    const xInitial = findInitialGuess(a, k, z);
+function solveForXUp(a: Decimal, k: Decimal, z: Decimal, divisorPow: Decimal, pow1: Decimal, pow2: Decimal): Decimal {
+    //TODO tolerance should scale to the value
+    const xInitial = findInitialGuess(a, k, z, divisorPow, pow1, pow2);
     let x = xInitial;
-    const tolerance = new Decimal(1e-6);
+    const tolerance = new Decimal(1e-5);
     const maxIterations = 100;
     console.log("toleralance", tolerance)
     for (let i = 0; i < maxIterations; i++) {
-        const fValue = computeFUp(x, a, k, z);
-        const fPrimeValue = computeFPrimeUp(x, k);
+        const fValue = computeFUp(x, a, k, z, divisorPow, pow1, pow2);
+        const fPrimeValue = computeFPrimeUp(x, k, divisorPow, pow1, pow2);
+
         if (fPrimeValue.equals(0)) {
             throw new Error('Derivative is zero. Newton-Raphson method fails.');
         }
+
         const xNew = x.minus(fValue.dividedBy(fPrimeValue));
         console.log("x new", xNew.toString(), x.toString())
         if (xNew.minus(x).abs().lessThan(tolerance)) {
             console.log("iterations: ", i)
             return xNew;
         }
+
         x = xNew;
     }
     console.log("iterations: ", maxIterations)
+
     return x;
     //throw new Error('Maximum iterations exceeded. No solution found.');
 }
-function findInitialGuess(a: Decimal, k: Decimal, z: Decimal): Decimal {
-    const tolerance = new Decimal(1e-4);
+function findInitialGuess(a: Decimal, k: Decimal, z: Decimal, divisorPow: Decimal, pow1: Decimal, pow2: Decimal): Decimal {
+    //TODO the tolerance here should scale to the z number (supply number)
+    const tolerance = new Decimal(1);
     const maxIterations = 1000;
 
     // Define an interval [xLower, xUpper] where the function changes sign
     let xLower = z.plus(new Decimal(1)); // Start slightly above z
-    let xUpper = z.plus(new Decimal(1e12)); // An upper bound; adjust as needed
+    let xUpper = z.plus(new Decimal(1e16)); // An upper bound; adjust as needed
 
-    let fLower = computeFUp(xLower, a, k, z);
-    let fUpper = computeFUp(xUpper, a, k, z);
+    let fLower = computeFUp(xLower, a, k, z, divisorPow, pow1, pow2);
+    let fUpper = computeFUp(xUpper, a, k, z, divisorPow, pow1, pow2);
 
     // Expand the interval until the function changes sign
     while (fLower.times(fUpper).greaterThanOrEqualTo(0)) {
         xUpper = xUpper.plus(new Decimal(1e12));
-        fUpper = computeFUp(xUpper, a, k, z);
+        fUpper = computeFUp(xUpper, a, k, z, divisorPow, pow1, pow2);
 
         // Safety check to prevent infinite loop
         if (xUpper.minus(z).greaterThan(new Decimal(1e15))) {
@@ -713,7 +727,7 @@ function findInitialGuess(a: Decimal, k: Decimal, z: Decimal): Decimal {
     let xMid = new Decimal(0);
     for (let i = 0; i < maxIterations; i++) {
         xMid = xLower.plus(xUpper).dividedBy(2);
-        const fMid = computeFUp(xMid, a, k, z);
+        const fMid = computeFUp(xMid, a, k, z, divisorPow, pow1, pow2);
 
         if (fMid.abs().lessThan(tolerance)) {
             return xMid;
@@ -735,25 +749,32 @@ function findInitialGuess(a: Decimal, k: Decimal, z: Decimal): Decimal {
     return xMid;
     //throw new Error('Maximum iterations exceeded in bisection method. No initial guess found.');
 }
-function computeFPrimeUp(x: Decimal, k: Decimal): Decimal {
+function computeFPrimeUp(x: Decimal, k: Decimal, divisorPow: Decimal, pow1: Decimal, pow2: Decimal): Decimal {
     const ln_k = Decimal.ln(k);
-    const exponent = new Decimal(1).plus(x.dividedBy(new Decimal(1e12)));
+    const divisorPowExp = new Decimal(10).pow(divisorPow)
+    const pow1Exp = new Decimal(10).pow(pow1)
+    const pow2Exp = new Decimal(10).pow(pow2)
+
+    const exponent = new Decimal(1).plus(x.dividedBy(divisorPowExp));
     const kExponent = k.pow(exponent);
-    const commonTerm = new Decimal(1e4).dividedBy(ln_k);
-    const constantTerm = new Decimal(1e16).dividedBy(ln_k.pow(2));
-    const derivativeExponent = kExponent.times(ln_k.dividedBy(new Decimal(1e12)));
+    const commonTerm = pow1Exp.dividedBy(ln_k);
+    const constantTerm = pow2Exp.dividedBy(ln_k.pow(2));
+    const derivativeExponent = kExponent.times(ln_k.dividedBy(divisorPowExp));
     const derivativeTerm = derivativeExponent
         .times(x.times(commonTerm).minus(constantTerm))
         .plus(kExponent.times(commonTerm))
         .plus(new Decimal(100000));
     return derivativeTerm;
 }
-function computeFUp(x: Decimal, a: Decimal, k: Decimal, z: Decimal): Decimal {
+function computeFUp(x: Decimal, a: Decimal, k: Decimal, z: Decimal, divisorPow: Decimal, pow1: Decimal, pow2: Decimal): Decimal {
     const ln_k = Decimal.ln(k);
-    const exponentX = new Decimal(1).plus(x.dividedBy(new Decimal(1e12)));
-    const exponentZ = new Decimal(1).plus(z.dividedBy(new Decimal(1e12)));
-    const commonTerm = new Decimal(1e4).dividedBy(ln_k);
-    const constantTerm = new Decimal(1e16).dividedBy(ln_k.pow(2));
+    const divisorPowExp = new Decimal(10).pow(divisorPow)
+    const pow1Exp = new Decimal(10).pow(pow1)
+    const pow2Exp = new Decimal(10).pow(pow2)
+    const exponentX = new Decimal(1).plus(x.dividedBy(divisorPowExp));
+    const exponentZ = new Decimal(1).plus(z.dividedBy(divisorPowExp));
+    const commonTerm = pow1Exp.dividedBy(ln_k);
+    const constantTerm = pow2Exp.dividedBy(ln_k.pow(2));
     const termX = k.pow(exponentX)
         .times(x.times(commonTerm).minus(constantTerm))
         .plus(new Decimal(100000).times(x));
@@ -762,26 +783,26 @@ function computeFUp(x: Decimal, a: Decimal, k: Decimal, z: Decimal): Decimal {
         .plus(new Decimal(100000).times(z));
     return termX.minus(termZ).minus(a);
 }
-export const lookupLimitDown = async (
-    constant: number,
-    newCqd: number,
-    cqd: number,
-): Promise<number> => {
+export const lookupLimitDownDec = async (
+    constant: Decimal,
+    newCqd: Decimal,
+    cqd: Decimal,
+    quoteDecimals: Decimal,
+    divisorPow: Decimal, pow1: Decimal, pow2: Decimal
+): Promise<Decimal> => {
     // Create Decimal instances
-    const constantD = new Decimal(constant);
-    const cqdD = new Decimal(cqd);
-    const newCqdD = new Decimal(newCqd);
+    
 
     // Optional: still compute basePow if needed
     // const basePow = new Decimal(10).pow(quoteDecimals);
 
     // Validate 'constant'
-    if (constantD.lte(0) || constantD.eq(1)) {
+    if (constant.lte(0) || constant.eq(1)) {
         throw new Error("Parameter 'k' must be greater than 0 and not equal to 1.");
     }
 
     // Use natural log via log(x, Math.E)
-    const ln_k = Decimal.log(constantD, Math.E);
+    const ln_k = Decimal.log(constant, Math.E);
     if (ln_k.eq(0)) {
         throw new Error("ln(k) is zero, causing a division by zero error.");
     }
@@ -790,137 +811,161 @@ export const lookupLimitDown = async (
     const ln_k_squared = ln_k.mul(ln_k);
 
     // Calculate exponents: 1 + cqd / 1e12
-    const exponentZ = new Decimal(1).plus(cqdD.div(1e12));
-    const exponentX = new Decimal(1).plus(newCqdD.div(1e12));
+    const exponentZ = new Decimal(1).plus(cqd.div((new Decimal(10).pow(divisorPow))));
+    const exponentX = new Decimal(1).plus(newCqd.div((new Decimal(10).pow(divisorPow))));
 
     // constant^exponent
-    const k_exponentZ = constantD.pow(exponentZ);
-    const k_exponentX = constantD.pow(exponentX);
+    const k_exponentZ = constant.pow(exponentZ);
+    const k_exponentX = constant.pow(exponentX);
 
     // Inner terms
-    const termZ_inner = cqdD
-        .mul(1e4)
+    const termZ_inner = cqd
+        .mul((new Decimal(10).pow(pow1)))
         .div(ln_k)
-        .minus(new Decimal(1e16).div(ln_k_squared));
+        .minus(new Decimal(10).pow(pow2).div(ln_k_squared));
 
-    const termX_inner = newCqdD
-        .mul(1e4)
+    const termX_inner = newCqd
+        .mul((new Decimal(10).pow(pow1)))
         .div(ln_k)
-        .minus(new Decimal(1e16).div(ln_k_squared));
+        .minus(new Decimal(10).pow(pow2).div(ln_k_squared));
 
     // Outer terms
-    const termZ = k_exponentZ.mul(termZ_inner).plus(new Decimal(100000).mul(cqdD));
-    const termX = k_exponentX.mul(termX_inner).plus(new Decimal(100000).mul(newCqdD));
+    const termZ = k_exponentZ.mul(termZ_inner).plus(new Decimal(100000).mul(cqd));
+    const termX = k_exponentX.mul(termX_inner).plus(new Decimal(100000).mul(newCqd));
     console.log("haiiii")
     // Final result
     const result = termZ.minus(termX);
 
     // Convert back to a number. Watch out for very large or very small values.
-    return result.toNumber();
+    return result
 };
 export const lookupLimitUpWithOutput = async (
-    constant: number,
-    newCqd: number,
-    cqd: number,
-): Promise<number> => {
-    if (constant <= 0 || constant === 1) {
+    constant: Decimal,
+    newCqd: Decimal,
+    cqd: Decimal,
+    quoteDecimals: Decimal,
+    divisorPow: Decimal, pow1: Decimal, pow2: Decimal
+): Promise<Decimal> => {
+    // Validate 'constant'
+    if (constant.lte(0) || constant.eq(1)) {
         throw new Error("Parameter 'k' must be greater than 0 and not equal to 1.");
     }
-    const ln_k = Math.log(constant);
-    if (ln_k === 0) {
+
+    // Use natural log via Decimal.ln()
+    const ln_k = constant.ln();
+    if (ln_k.eq(0)) {
         throw new Error("ln(k) is zero, causing a division by zero error.");
     }
-    const ln_k_squared = ln_k * ln_k;
-    const exponentZ = 1 + cqd / 1e12;
-    const exponentX = 1 + newCqd / 1e12;
 
-    const k_exponentZ = Math.pow(constant, exponentZ);
-    const k_exponentX = Math.pow(constant, exponentX);
+    // Calculate ln_k_squared
+    const ln_k_squared = ln_k.mul(ln_k);
 
-    const termZ_inner = (cqd * 1e4) / ln_k - 1e16 / ln_k_squared;
-    const termX_inner = (newCqd * 1e4) / ln_k - 1e16 / ln_k_squared;
+    // Calculate exponents
+    const exponentZ = new Decimal(1).plus(cqd.div(new Decimal(10).pow(divisorPow)));
+    const exponentX = new Decimal(1).plus(newCqd.div(new Decimal(10).pow(divisorPow)));
 
-    const termZ = k_exponentZ * termZ_inner + 100000 * cqd;
-    const termX = k_exponentX * termX_inner + 100000 * newCqd;
+    // Calculate k^exponent values
+    const k_exponentZ = constant.pow(exponentZ);
+    const k_exponentX = constant.pow(exponentX);
 
-    const a = termX - termZ;
+    // Calculate inner terms
+    const termZ_inner = cqd.mul(new Decimal(10).pow(pow1)).div(ln_k)
+        .minus(new Decimal(10).pow(pow2).div(ln_k_squared));
+    const termX_inner = newCqd.mul(new Decimal(10).pow(pow1)).div(ln_k)
+        .minus(new Decimal(10).pow(pow2).div(ln_k_squared));
+
+    // Calculate final terms
+    const termZ = k_exponentZ.mul(termZ_inner).plus(new Decimal(100000).mul(cqd));
+    const termX = k_exponentX.mul(termX_inner).plus(new Decimal(100000).mul(newCqd));
+
+    // Calculate result
+    const a = termX.minus(termZ);
 
     return a;
 }
 export const lookupLimitDownWithOutput = async (
-    proceeds: number,
-    constant: number,
-    startQ: number,
-    quoteDecimals: number
-): Promise<number> => {
-    const base = 10;
-    const basePow = Math.pow(base, Number(quoteDecimals));
-    const proceedsX = proceeds * basePow;
-    const newX = solveForXDown(proceedsX, constant, startQ);
+    proceeds: Decimal,
+    constant: Decimal,
+    startQ: Decimal,
+    quoteDecimals: Decimal,
+    divisorPow: Decimal, pow1: Decimal, pow2: Decimal
+): Promise<Decimal> => {
+    // Convert the base to Decimal
+    const base = new Decimal(10);
+    // Calculate basePow using Decimal methods
+    const basePow = base.pow(quoteDecimals);
+    // Calculate costX using Decimal
+    const costX = proceeds.times(basePow);
+    // Call solveForXDown with Decimal values
+    const newX = solveForXDown(costX, constant, startQ, divisorPow, pow1, pow2);
     return newX;
 }
-function solveForXDown(a: number, k: number, z: number): number {
-    let x = z - 1e6; // Initial guess (slightly less than z)
-    const tolerance = 1e-6;
+function solveForXDown(a: Decimal, k: Decimal, z: Decimal, divisorPow: Decimal, pow1: Decimal, pow2: Decimal): Decimal {
+    // Initial guess (slightly less than z)
+    let x = z.minus(new Decimal('1e6'));
+    const tolerance = new Decimal('1e-6');
     const maxIterations = 10000;
 
     for (let i = 0; i < maxIterations; i++) {
-        const fValue = computeFDown(x, a, k, z);
-        const fPrimeValue = computeFPrimeDown(x, k);
+        const fValue = computeFDown(x, a, k, z, divisorPow, pow1, pow2);
+        const fPrimeValue = computeFPrimeDown(x, k, divisorPow, pow1, pow2);
 
-        if (fPrimeValue === 0) {
+        if (fPrimeValue.equals(0)) {
             throw new Error('Derivative is zero. Newton-Raphson method fails.');
         }
 
-        const xNew = x - fValue / fPrimeValue;
+        const xNew = x.minus(fValue.dividedBy(fPrimeValue));
 
-        if (Math.abs(xNew - x) < tolerance) {
+        if (xNew.minus(x).abs().lessThan(tolerance)) {
             return xNew;
         }
 
         x = xNew;
     }
-    return x
+    return x;
     //throw new Error('Maximum iterations exceeded. No solution found.');
 }
-function computeFDown(x: number, a: number, k: number, z: number): number {
-    const ln_k = Math.log(k);
+function computeFDown(x: Decimal, a: Decimal, k: Decimal, z: Decimal, divisorPow: Decimal, pow1: Decimal, pow2: Decimal): Decimal {
+    const ln_k = Decimal.ln(k);
 
     // Compute f(z)
-    const exponentZ = 1 + z / 1e12;
-    const kPowerZ = Math.pow(k, exponentZ);
-    const termZ1 = (z * 1e4) / ln_k;
-    const termZ2 = 1e16 / (ln_k * ln_k);
-    const fz = kPowerZ * (termZ1 - termZ2) + 100000 * z;
+    const exponentZ = new Decimal(1).plus(z.div(new Decimal(10).pow(divisorPow)));
+    const kPowerZ = k.pow(exponentZ);
+    const termZ1 = z.times(new Decimal(10).pow(pow1)).div(ln_k);
+    const termZ2 = new Decimal(10).pow(pow2).div(ln_k.pow(2));
+    const fz = kPowerZ.times(termZ1.minus(termZ2)).plus(new Decimal(100000).times(z));
 
     // Compute f(x)
-    const exponentX = 1 + x / 1e12;
-    const kPowerX = Math.pow(k, exponentX);
-    const termX1 = (x * 1e4) / ln_k;
-    const termX2 = 1e16 / (ln_k * ln_k);
-    const fx = kPowerX * (termX1 - termX2) + 100000 * x;
+    const exponentX = new Decimal(1).plus(x.div(new Decimal(10).pow(divisorPow)));
+    const kPowerX = k.pow(exponentX);
+    const termX1 = x.times(new Decimal(10).pow(pow1)).div(ln_k);
+    const termX2 = new Decimal(10).pow(pow2).div(ln_k.pow(2));
+    const fx = kPowerX.times(termX1.minus(termX2)).plus(new Decimal(100000).times(x));
 
     // Compute F(x) = f(z) - f(x) - a
-    const F = fz - fx - a;
+    const F = fz.minus(fx).minus(a);
 
     return F;
 }
-function computeFPrimeDown(x: number, k: number): number {
-    const ln_k = Math.log(k);
+function computeFPrimeDown(x: Decimal, k: Decimal, divisorPow: Decimal, pow1: Decimal, pow2: Decimal): Decimal {
+    const ln_k = Decimal.ln(k);
 
     // Compute components for f'(x)
-    const exponent = 1 + x / 1e12;
-    const kPowerX = Math.pow(k, exponent);
+    const divisorPowExp = new Decimal(10).pow(divisorPow);
+    const exponent = new Decimal(1).plus(x.div(divisorPowExp));
+    const kPowerX = k.pow(exponent);
     const A_x = kPowerX;
-    const B_x = (x * 1e4) / ln_k - 1e16 / (ln_k * ln_k);
-    const A_prime_x = (A_x * ln_k) / 1e12;
-    const B_prime_x = 1e4 / ln_k;
+    const pow1Exp = new Decimal(10).pow(pow1);
+    const pow2Exp = new Decimal(10).pow(pow2);
+    const B_x = x.times(pow1Exp).div(ln_k).minus(pow2Exp.div(ln_k.pow(2)));
+    const A_prime_x = A_x.times(ln_k).div(divisorPowExp);
+    const B_prime_x = pow1Exp.div(ln_k);
 
     // Compute f'(x)
-    const f_prime = A_prime_x * B_x + A_x * B_prime_x + 100000;
+    const f_prime = A_prime_x.times(B_x).plus(A_x.times(B_prime_x)).plus(new Decimal(100000));
 
     // Since F(x) = f(z) - f(x) - a, then F'(x) = -f'(x)
-    const derivative = -f_prime;
+    const derivative = f_prime.negated();
 
     return derivative;
 }
@@ -1005,12 +1050,10 @@ function fPrime(x: Decimal, s: Decimal, k: Decimal): Decimal {
     // f'(x) = v(x) + (x - s) * dv/dx
     return v.plus(x.minus(s).times(dv_dx));
 }
-export function getPrice(x: number, k: number): number {
-    const X = new Decimal(x);
-    const K = new Decimal(k);
-    return X.times(K.pow(new Decimal(1).plus(X.div(1e12))))
-        .div(1e8)
-        .plus(100000)
+export function getPriceDec(x: Decimal, k: Decimal, divisorPow: Decimal, gradient: Decimal, offset: Decimal): number {
+    return x.times(k.pow(new Decimal(1).plus(x.div(new Decimal(10).pow(divisorPow)))))
+        .div(gradient)
+        .plus(offset)
         .toNumber(); // Convert Decimal to number
 }
 /**
