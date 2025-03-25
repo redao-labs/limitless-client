@@ -11,7 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
-examples
+marketCreator.json
+openai-api-key.json
+showcase.json
+markets
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -20,7 +20,14 @@ import {
     repayIx,
     createProgramConnection,
     boostFloorIx,
-    updateFloorIx
+    updateFloorIx,
+    lookupLimitUp,
+    getPrice,
+    quantityFromProceedsWPrice,
+    floorProceedsWPrice,
+    findRoot,
+    floorProceeds,
+    lookupLimitDown
 } from './ix-builder';
 import {
     Connection,
@@ -42,6 +49,7 @@ import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-ad
 import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata';
 import { irysUploader } from '@metaplex-foundation/umi-uploader-irys';
 import { createGenericFile, createSignerFromKeypair, Keypair as KP, publicKey } from '@metaplex-foundation/umi';
+import Decimal from 'decimal.js';
 //smart contract api
 
 type TxProgressCallback = (message: string, type: 'info' | 'success' | 'error') => void;
@@ -60,7 +68,7 @@ export class LimitlessSDK {
         this.connection = connection;
         this.program = null as any; // Will be initialized in init()
     }
-
+    //TODO, when retrieving the tx, once confirmed return the event log
     //initialize sdk -> create the program
     async init(): Promise<void> {
         try {
@@ -458,24 +466,56 @@ export class LimitlessSDK {
         return await this.buildAndSendTransaction(instructions, callback);
     }
     //presale buy
+    async presaleBuyInfo(
+        cost: Decimal,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never
+    ): Promise<{ out: Decimal; newPrice: Decimal; priceIncrease: Decimal; presaleInfo: { totalQuote: Decimal; totalBase: Decimal; baseShare: Decimal; baseSharePercent: Decimal, avgPrice: Decimal } }> {
+        let costPostFee = cost.div(new Decimal(1).plus(new Decimal(0.001)).plus(new Decimal(marketState.presaleFee).div(10000))).mul(new Decimal(0.999999687))
+        let newCqd = (await lookupLimitUp(
+            new Decimal(costPostFee),
+            new Decimal(1.5), //todo get from state
+            new Decimal(marketState.cqd.toString()),
+            new Decimal(marketState.quoteDecimals + marketState.scalerDecimals),
+            new Decimal(marketState.divisorPow),
+            new Decimal(marketState.pow1),
+            new Decimal(marketState.pow2)
+        )).floor()
+        let cqdDiff = newCqd.sub(marketState.cqd.toString())
+        marketState.presaleBase = new anchor.BN(new Decimal(marketState.presaleBase.toString()).add(cqdDiff).toString())
+        let presaleInfo = await this.getPresaleInfo(costPostFee, marketState)
+        let out = cqdDiff.div(Math.pow(10, marketState.baseDecimals))
+        let oldPrice = (await getPrice(
+            new Decimal(marketState.cqd.toString()),
+            new Decimal(1.5),
+            new Decimal(marketState.divisorPow),
+            new Decimal(marketState.gradient.toString()),
+            new Decimal(marketState.offset.toString())
+        )).div(10 ** (marketState.quoteDecimals + marketState.scalerDecimals))
+        let newPrice = (await getPrice(
+            new Decimal(newCqd.toString()),
+            new Decimal(1.5),
+            new Decimal(marketState.divisorPow),
+            new Decimal(marketState.gradient.toString()),
+            new Decimal(marketState.offset.toString())
+        )).div(10 ** (marketState.quoteDecimals + marketState.scalerDecimals))
+        let priceIncrease = newPrice.sub(oldPrice).div(oldPrice).div(100)
+        return { out, newPrice, priceIncrease, presaleInfo }
+    }
     async presaleBuy(
         quantity: anchor.BN,
-        maxCost: anchor.BN,
         userQuoteToken: PublicKey,
         market: PublicKey,
-        marketState: any,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
         callback?: TxProgressCallback
     ): Promise<{ txid: string; confirmed: boolean }> {
         // Build presale buy instruction
-
         const instructions = [
             ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
 
         ];
-
         const ix = await presaleBuyIx(
             quantity,
-            maxCost,
+            new anchor.BN(100),
             this.wallet.publicKey,
             userQuoteToken,
             market,
@@ -488,7 +528,7 @@ export class LimitlessSDK {
     async claimPresale(
         couponAddresses: PublicKey[],
         market: PublicKey,
-        marketState: any,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
         callback?: TxProgressCallback
     ): Promise<{ txid: string; confirmed: boolean }> {
         if (!this.program) throw new Error("Program not initialized");
@@ -504,7 +544,7 @@ export class LimitlessSDK {
             try {
                 userBaseToken = await getAccount(this.program.provider.connection, associatedBaseAddress);
             } catch (error) {
-
+                
             }
             const instructions: TransactionInstruction[] = [
                 ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 })
@@ -537,14 +577,45 @@ export class LimitlessSDK {
             throw error;
         }
     }
+    async buyInfo(
+        cost: Decimal,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never
+    ): Promise<{ out: Decimal; newPrice: Decimal; priceIncrease: Decimal; }> {
+        let costPostFee = cost.div(new Decimal(1).plus(new Decimal(0.001)).plus(new Decimal(marketState.presaleFee).div(10000))).mul(new Decimal(0.999999687))
+        let newCqd = (await lookupLimitUp(
+            new Decimal(costPostFee),
+            new Decimal(1.5), //todo get from state
+            new Decimal(marketState.cqd.toString()),
+            new Decimal(marketState.quoteDecimals + marketState.scalerDecimals),
+            new Decimal(marketState.divisorPow),
+            new Decimal(marketState.pow1),
+            new Decimal(marketState.pow2)
+        )).floor()
+        let cqdDiff = newCqd.sub(marketState.cqd.toString())
+        let out = cqdDiff.div(Math.pow(10, marketState.baseDecimals))
+        let oldPrice = (await getPrice(
+            new Decimal(marketState.cqd.toString()),
+            new Decimal(1.5),
+            new Decimal(marketState.divisorPow),
+            new Decimal(marketState.gradient.toString()),
+            new Decimal(marketState.offset.toString())
+        )).div(10 ** (marketState.quoteDecimals + marketState.scalerDecimals))
+        let newPrice = (await getPrice(
+            new Decimal(newCqd.toString()),
+            new Decimal(1.5),
+            new Decimal(marketState.divisorPow),
+            new Decimal(marketState.gradient.toString()),
+            new Decimal(marketState.offset.toString())
+        )).div(10 ** (marketState.quoteDecimals + marketState.scalerDecimals))
+        let priceIncrease = newPrice.sub(oldPrice).div(oldPrice).div(100)
+        return { out, newPrice, priceIncrease }
+    }
     async buy(
         quantity: anchor.BN,
         maxCost: anchor.BN,
         market: PublicKey,
-        marketState: any,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
         userQuoteToken: PublicKey,
-        cqd_guess: anchor.BN,
-        ncqd_guess: anchor.BN,
         callback?: TxProgressCallback
     ): Promise<{ txid: string; confirmed: boolean }> {
         let associatedBaseAddress = await getAssociatedTokenAddress(marketState.baseMintAddress, this.wallet.publicKey);
@@ -576,18 +647,85 @@ export class LimitlessSDK {
             userQuoteToken,
             market,
             this.program,
-            marketState,
-            cqd_guess,
-            ncqd_guess
+            marketState
         );
         instructions.push(ix)
         return await this.buildAndSendTransaction(instructions, callback);
+    }
+    async sellInfo(
+        quantity: Decimal,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never
+    ): Promise<{ out: Decimal; outAmm: Decimal; outFloor: Decimal; sellAmmQ: Decimal; sellFloorQ: Decimal; newPrice: Decimal; priceIncrease: Decimal; }> {
+        let newCqd = new Decimal(marketState.cqd.toString()).sub(quantity)
+        let floorQ = new Decimal(marketState.highestFloorQuantity.toString()).sub(newCqd)
+        if (new Decimal(marketState.highestFloorQuantity.toString()).greaterThan(marketState.cqd.toString())) {
+            floorQ = quantity
+        }
+        let floorQuoteOut = new Decimal(0)
+        if (floorQ.greaterThan(0)) {
+            newCqd = new Decimal(marketState.highestFloorQuantity.toString())
+            floorQuoteOut = await floorProceeds(
+                new Decimal(marketState.highestFloorQuantity.toString()),
+                floorQ,
+                new Decimal(marketState.gradient.toString()),
+                new Decimal(marketState.divisorPow),
+                marketState.offset,
+                marketState.quoteDecimals + marketState.scalerDecimals
+            )
+        }
+        let quoteOut = (await lookupLimitDown(
+            new Decimal(1.5), //todo get from state
+            newCqd,
+            new Decimal(marketState.cqd.toString()),
+            new Decimal(marketState.divisorPow),
+            new Decimal(marketState.pow1),
+            new Decimal(marketState.pow2)
+        )).floor()
+        let totalQuoteOut = quoteOut.mul(new Decimal(1).sub(new Decimal(0.001)).sub(new Decimal(marketState.sellFee).div(10000))).mul(new Decimal(1).div(0.999989577))
+        let outputVal = totalQuoteOut.div(new Decimal(10).pow(marketState.quoteDecimals + marketState.scalerDecimals + marketState.quoteDecimals))
+        if (floorQ.greaterThan(0)) {
+            console.log("floorQ, floorout", floorQ.toString(), floorQuoteOut.toString())
+            outputVal = outputVal.add(floorQuoteOut.div(10 ** marketState.quoteDecimals))
+            if (new Decimal(marketState.highestFloorQuantity.toString()).greaterThan(marketState.cqd.toString())) {
+              outputVal = floorQuoteOut.div(10 ** marketState.quoteDecimals)
+            }
+        }
+        let oldPrice = (await getPrice(
+            new Decimal(marketState.cqd.toString()),
+            new Decimal(1.5),
+            new Decimal(marketState.divisorPow || 0),
+            new Decimal(marketState.gradient.toString()),
+            new Decimal(marketState.offset.toString())
+          )).div(10 ** (marketState.baseDecimals + marketState.scalerDecimals))
+          let newPrice = (await getPrice(
+            new Decimal(newCqd.toString()),
+            new Decimal(1.5),
+            new Decimal(marketState.divisorPow || 0),
+            new Decimal(marketState.gradient.toString()),
+            new Decimal(marketState.offset.toString())
+          )).div(10 ** (marketState.baseDecimals + marketState.scalerDecimals))
+          let priceIncrease = newPrice.sub(oldPrice).div(oldPrice).div(100)
+          //sell amm q, sell floor q, amm out, floor out, new price, price increase
+          let sellAmmQ = new Decimal(marketState.cqd.toString()).sub(newCqd)
+          let sellFloorQ = quantity.sub(sellAmmQ)
+          let totalOut = outputVal
+          let ammOut = totalQuoteOut.div(new Decimal(10).pow(marketState.quoteDecimals + marketState.scalerDecimals + marketState.quoteDecimals))
+          let floorOut = floorQuoteOut.div(10 ** marketState.quoteDecimals)
+          return {
+            out: totalOut,
+            outAmm: ammOut,
+            outFloor: floorOut,
+            sellAmmQ: sellAmmQ,
+            sellFloorQ: sellFloorQ,
+            newPrice: newPrice,
+            priceIncrease: priceIncrease
+          }
     }
     async sell(
         quantity: anchor.BN,
         minProceeds: anchor.BN,
         market: PublicKey,
-        marketState: any,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
         userBaseToken: PublicKey,
         cqd_guess: anchor.BN,
         ncqd_guess: anchor.BN,
@@ -633,7 +771,7 @@ export class LimitlessSDK {
         quantity: anchor.BN,
         minProceeds: anchor.BN,
         market: PublicKey,
-        marketState: any,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
         userBaseToken: PublicKey,
         callback?: TxProgressCallback
     ): Promise<{ txid: string; confirmed: boolean }> {
@@ -689,7 +827,7 @@ export class LimitlessSDK {
     async deposit(
         amount: anchor.BN,
         market: PublicKey,
-        marketState: any,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
         userBaseTokenAddress: PublicKey,
         callback?: TxProgressCallback
     ): Promise<{ txid: string; confirmed: boolean }> {
@@ -710,9 +848,8 @@ export class LimitlessSDK {
     async withdraw(
         amount: anchor.BN,
         market: PublicKey,
-        marketState: any,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
         userBaseTokenAddress: PublicKey,
-        quoteMint: PublicKey,
         callback?: TxProgressCallback
     ): Promise<{ txid: string; confirmed: boolean }> {
         const ix = await withdrawIx(
@@ -722,7 +859,6 @@ export class LimitlessSDK {
             marketState,
             this.program,
             userBaseTokenAddress,
-            quoteMint
         );
         const instructions = [
             ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
@@ -733,9 +869,8 @@ export class LimitlessSDK {
     async borrow(
         amount: anchor.BN,
         market: PublicKey,
-        marketState: any,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
         userQuoteTokenAddress: PublicKey,
-        quoteMint: PublicKey,
         callback?: TxProgressCallback
     ): Promise<{ txid: string; confirmed: boolean }> {
         const ix = await borrowIx(
@@ -744,8 +879,7 @@ export class LimitlessSDK {
             market,
             marketState,
             this.program,
-            userQuoteTokenAddress,
-            quoteMint
+            userQuoteTokenAddress
         );
         const instructions = [
             ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
@@ -756,7 +890,7 @@ export class LimitlessSDK {
     async repay(
         amount: anchor.BN,
         market: PublicKey,
-        marketState: any,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
         userQuoteTokenAddress: PublicKey,
         callback?: TxProgressCallback
     ): Promise<{ txid: string; confirmed: boolean }> {
@@ -774,16 +908,20 @@ export class LimitlessSDK {
         ];
         return await this.buildAndSendTransaction(instructions, callback);
     }
+    async getUpdateFloorQuantity(
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
+    ): Promise<Decimal> {
+        let floorPoolDecimal = new Decimal(marketState.floorPoolSize.toString()).mul(new Decimal(10).pow(marketState.quoteDecimals + marketState.scalerDecimals))
+        let floorQ = await findRoot(floorPoolDecimal, new Decimal(marketState.totalBurned.toString()), new Decimal(1.5), new Decimal(marketState.divisorPow)).floor()
+        return floorQ
+    }
     async updateFloor(
         quantity: anchor.BN,
-        initGuess: anchor.BN,
         market: PublicKey,
-
         callback?: TxProgressCallback
     ): Promise<{ txid: string; confirmed: boolean }> {
         const ix = await updateFloorIx(
             quantity,
-            initGuess,
             market,
             this.program
         )
@@ -795,17 +933,13 @@ export class LimitlessSDK {
     }
     async boostFloor(
         market: PublicKey,
-        marketState: any,
-        guess1: anchor.BN,
-        guess2: anchor.BN,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
         callback?: TxProgressCallback
     ): Promise<{ txid: string; confirmed: boolean }> {
         const ix = await boostFloorIx(
             market,
             marketState,
-            this.program,
-            guess1,
-            guess2
+            this.program
         )
         const instructions = [
             ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
@@ -813,7 +947,29 @@ export class LimitlessSDK {
         ];
         return await this.buildAndSendTransaction(instructions, callback);
     }
-
+    async updateAndBoostFloor(
+        quantity: anchor.BN,
+        market: PublicKey,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        const ixUpdate = await updateFloorIx(
+            quantity,
+            market,
+            this.program
+        )
+        const ixBoost = await boostFloorIx(
+            market,
+            marketState,
+            this.program
+        )
+        const instructions = [
+            ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
+            ixUpdate,
+            ixBoost
+        ];
+        return await this.buildAndSendTransaction(instructions, callback);
+    }
     //getters
     //types
 
@@ -822,7 +978,7 @@ export class LimitlessSDK {
         market: PublicKey,
         user: PublicKey
     ): Promise<
-        Array<typeof this.program.account.presaleCoupon['fetch'] extends (...args: any) => Promise<infer T> ? T : never>
+        [Array<typeof this.program.account.presaleCoupon['fetch'] extends (...args: any) => Promise<infer T> ? T : never>, PublicKey[]]
     > {
         //console.log("get coupons")
         if (!this.program) {
@@ -844,7 +1000,22 @@ export class LimitlessSDK {
             }
         ]);
         // Map ProgramAccount objects to their account data
-        return couponsData.map(coupon => coupon.account);
+        return [couponsData.map(coupon => coupon.account), couponsData.map(coupon => coupon.publicKey)]
+    }
+
+    async getPresaleInfo(
+        userQuoteInput: Decimal,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never
+    ): Promise<{ totalQuote: Decimal; totalBase: Decimal; baseShare: Decimal; baseSharePercent: Decimal, avgPrice: Decimal }> {
+        const globalQuote = new Decimal(marketState.presaleQuote.toString())
+            .div(new Decimal(10).pow(marketState.quoteDecimals));
+        const totalBase = new Decimal(marketState.presaleBase.toString())
+            .div(new Decimal(10).pow(marketState.baseDecimals));
+        const share = userQuoteInput.div(globalQuote);
+        const baseShare = totalBase.mul(share)
+        const baseSharePercent = share.mul(100);
+        const avgPrice = globalQuote.div(totalBase)
+        return { totalQuote: globalQuote, totalBase, baseShare, baseSharePercent, avgPrice };
     }
 
     //get market
@@ -886,7 +1057,51 @@ export class LimitlessSDK {
         return depositAccount;
     }
 
+    async getWithdrawableAmount(
+        depositAccount: (typeof this.program.account.depositAccount['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never
+    ): Promise<Decimal> {
+        let totalBorrow = new Decimal(depositAccount.totalBorrowQuote.toString())
+        let quantityDeposited = new Decimal(depositAccount.totalDepositBase.toString())
+        let subOne = totalBorrow.greaterThan(0) ? true : false
+        let quantityLocked = await quantityFromProceedsWPrice(
+            totalBorrow,
+            marketState.quoteDecimals + marketState.scalerDecimals,
+            new Decimal(marketState.floorPrice.toString()),
+            subOne
+        )
+        let quantityFree = quantityDeposited.sub(quantityLocked)
+        if (quantityFree.equals(1) && totalBorrow.greaterThan(0)) {
+            quantityFree = new Decimal(0)
+        }
+        return quantityFree
+    }
+
+    async getBorrowableAmount(
+        depositAccount: (typeof this.program.account.depositAccount['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never
+    ): Promise<Decimal> {
+        let totalBorrow = new Decimal(depositAccount.totalBorrowQuote.toString())
+        let quantityDeposited = new Decimal(depositAccount.totalDepositBase.toString())
+        let maxBorrow = await floorProceedsWPrice(
+            quantityDeposited,
+            marketState.quoteDecimals + marketState.scalerDecimals,
+            new Decimal(marketState.floorPrice.toString())
+        )
+        let maxBorrowDelta = maxBorrow.sub(totalBorrow)
+        return maxBorrowDelta
+    }
+
+
+
     //get top markets
+
+    //get presaleDate, launchDate
+    async getMarketDates(launchDate: number, presaleOffset: number): Promise<[Date, Date]> {
+        let launchStart = new Date(launchDate * 1000);
+        let presaleStart = new Date((launchDate - presaleOffset) * 1000);
+        return [launchStart, presaleStart];
+    }
 
     // Utility function to parse error messages
     isolateErrorMessage(errorObj: any): string | null {
@@ -922,10 +1137,9 @@ export {
     BASE_ADDRESS,
     createProgramConnection,
     getPrice,
-    quantityFromProceedsExpo,
-    quantityFromProceedsExpoWPrice,
-    floorProceedsExpo,
-    floorProceedsExpoWPrice
+    quantityFromProceedsWPrice,
+    floorProceeds,
+    floorProceedsWPrice
 } from './ix-builder';
 
 export type { MarketState };

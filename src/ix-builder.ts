@@ -67,7 +67,6 @@ export async function createIx(
         ],
         new anchor.web3.PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"),
     );
-    console.log("qpaaaair", quoteMint.toBase58())
     const createMarketIx = await program.methods
         .createMarket(marketId, {
             startQuantity: new anchor.BN(0),
@@ -101,9 +100,6 @@ export async function createIx(
             marketState: marketStateAddress,
             baseMint: baseMintAddress,
             quoteMint: quoteMint,
-            feeReceiveAddress: userQuoteTokenAddress,
-            // platformFeeVault: platformFeeAddress,
-            // baseDepositVault: baseDepositTokenAddress,
             metadata: metadataAddress,
             tokenProgram: TOKEN_PROGRAM_ID,
             tokenMetadataProgram: new anchor.web3.PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"),
@@ -158,10 +154,7 @@ export async function createVaultsIxes(
             marketBase: marketBaseAddress,
             marketState: marketStateAddress,
             baseMint: baseMintAddress,
-            // quoteMint: quoteMint,
             baseTokenVault: baseTokenAddress,
-            // quoteTokenVault: quoteTokenAddress,
-            // quoteTokenFloorVault: quoteFloorTokenAddress,
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: anchor.web3.SystemProgram.programId,
         }).instruction()
@@ -173,8 +166,6 @@ export async function createVaultsIxes(
             marketState: marketStateAddress,
             baseMint: baseMintAddress,
             quoteMint: quoteMint,
-            // baseTokenVault: baseTokenAddress,
-            // quoteTokenVault: quoteTokenAddress,
             quoteTokenFloorVault: quoteFloorTokenAddress,
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: anchor.web3.SystemProgram.programId,
@@ -187,9 +178,6 @@ export async function createVaultsIxes(
             marketState: marketStateAddress,
             baseMint: baseMintAddress,
             quoteMint: quoteMint,
-            // baseTokenVault: baseTokenAddress,
-            // quoteTokenVault: quoteTokenAddress,
-            // quoteTokenFloorVault: quoteFloorTokenAddress,
             platformFeeVault: platformFeeAddress,
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: anchor.web3.SystemProgram.programId,
@@ -202,9 +190,7 @@ export async function createVaultsIxes(
             marketState: marketStateAddress,
             baseMint: baseMintAddress,
             quoteMint: quoteMint,
-            // baseTokenVault: baseTokenAddress,
             quoteTokenVault: quoteTokenAddress,
-            // quoteTokenFloorVault: quoteFloorTokenAddress,
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: anchor.web3.SystemProgram.programId,
         }).instruction()
@@ -216,14 +202,10 @@ export async function createVaultsIxes(
             marketState: marketStateAddress,
             baseMint: baseMintAddress,
             quoteMint: quoteMint,
-            // baseTokenVault: baseTokenAddress,
-            // quoteTokenVault: quoteTokenAddress,
-            // quoteTokenFloorVault: quoteFloorTokenAddress,
             baseDepositVault: baseDepositTokenAddress,
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: anchor.web3.SystemProgram.programId,
         }).instruction()
-    console.log("RETURNING")
     return [createVaultsIx, createVaultsIx1, createVaultsIx2, createVaultsIx3, createVaultsIx4]
 }
 export async function claimFeesIx(
@@ -232,7 +214,7 @@ export async function claimFeesIx(
     program: anchor.Program<Limitless>,
 ): Promise<anchor.web3.TransactionInstruction> {
     let marketBaseAddress = new anchor.web3.PublicKey(BASE_ADDRESS);
-    let [platformFeeVault, platformFeeVaulttBump] = await anchor.web3.PublicKey.findProgramAddress(
+    let [platformFeeVault, platformFeeVaultBump] = await anchor.web3.PublicKey.findProgramAddress(
         [marketStateAddress.toBuffer(), Buffer.from("platform_fee_vault")],
         program.programId
     );
@@ -309,7 +291,6 @@ export async function presaleBuyIx(
         quoteTokenVault: marketState.quoteMintTokenAddress,
         quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
         platformFeeVault: marketState.platformFeeVaultAddress,
-        feeReceiveAddress: marketState.receiveAddress,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
         clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
@@ -353,16 +334,14 @@ export async function buyIx(
     userQuoteToken: anchor.web3.PublicKey,
     market: anchor.web3.PublicKey,
     program: anchor.Program<Limitless>,
-    marketState: any,
-    cqd_guess: anchor.BN,
-    ncqd_guess: anchor.BN
-): Promise<anchor.web3.TransactionInstruction> => {
+    marketState: any
+): Promise<anchor.web3.TransactionInstruction>{
     //TODO pass in market as parameter
     const ix = await program.methods
-        .buyWGuess({
+        .buy({
             quantity: quantity,
             maxCost: maxCost
-        }, cqd_guess, ncqd_guess
+        }
         )
         .accountsPartial({
             user: user,
@@ -375,7 +354,6 @@ export async function buyIx(
             quoteTokenVault: marketState.quoteMintTokenAddress,
             quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
             platformFeeVault: marketState.platformFeeVaultAddress,
-            feeReceiveAddress: marketState.receiveAddress,
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: anchor.web3.SystemProgram.programId,
             clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
@@ -390,7 +368,7 @@ export  async function buyIxCreator(
     market: anchor.web3.PublicKey,
     marketState: any,
     program: anchor.Program<Limitless>
-): Promise<anchor.web3.TransactionInstruction> => {
+): Promise<anchor.web3.TransactionInstruction>{
     //TODO pass in market as parameter
     const ix = await program.methods
         .creatorBuy({
@@ -408,7 +386,6 @@ export  async function buyIxCreator(
             quoteTokenVault: marketState.quoteMintTokenAddress,
             quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
             platformFeeVault: marketState.platformFeeVaultAddress,
-            feeReceiveAddress: marketState.receiveAddress,
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: anchor.web3.SystemProgram.programId,
             clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
@@ -426,13 +403,13 @@ export  async function sellIx(
     program: anchor.Program<Limitless>,
     cqd_guess: anchor.BN,
     ncqd_guess: anchor.BN
-): Promise<anchor.web3.TransactionInstruction> => {
+): Promise<anchor.web3.TransactionInstruction>{
     console.log("user", user.toBase58())
     const ix = await program.methods
-        .sellWGuess({
+        .sell({
             quantity: quantity,
             minProceeds: minProceeds
-        }, cqd_guess, ncqd_guess 
+        } 
         )
         .accountsPartial({
             user: user,
@@ -445,7 +422,6 @@ export  async function sellIx(
             quoteTokenVault: marketState.quoteMintTokenAddress,
             quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
             platformFeeVault: marketState.platformFeeVaultAddress,
-            feeReceiveAddress: marketState.receiveAddress,
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: anchor.web3.SystemProgram.programId,
             clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
@@ -461,7 +437,7 @@ export  async function sellFloorIx(
     market: anchor.web3.PublicKey,
     marketState: any,
     program: anchor.Program<Limitless>,
-): Promise<anchor.web3.TransactionInstruction> => {
+): Promise<anchor.web3.TransactionInstruction>{
     const ix = await program.methods
         .sellFloor({
             quantity: quantity,
@@ -484,14 +460,13 @@ export  async function sellFloorIx(
 }
 export  async function updateFloorIx(
     quantity: anchor.BN,
-    initGuess: anchor.BN,
     market: anchor.web3.PublicKey,
     program: anchor.Program<Limitless>,
-): Promise<anchor.web3.TransactionInstruction> => {
+): Promise<anchor.web3.TransactionInstruction>{
     //TODO pass in market as parameter
     //let marketState = await program.account.marketState.fetch(market);
     const ix = await program.methods
-        .updateFloor(quantity, initGuess)
+        .updateFloor(quantity)
         .accountsPartial({
             marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
             marketState: market,
@@ -502,13 +477,11 @@ export  async function updateFloorIx(
 export  async function boostFloorIx(
     market: anchor.web3.PublicKey,
     marketState: any,
-    program: anchor.Program<Limitless>,
-    guess1: anchor.BN,
-    guess2: anchor.BN
-): Promise<anchor.web3.TransactionInstruction> => {
+    program: anchor.Program<Limitless>
+): Promise<anchor.web3.TransactionInstruction>{
     //TODO pass in market as parameter
     const ix = await program.methods
-        .boostFloorWGuess(guess1, guess2)
+        .boostFloor()
         .accountsPartial({
             marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
             marketState: market,
@@ -570,23 +543,18 @@ export async function withdrawIx(
     marketState: any,
     program: anchor.Program<Limitless>,
     userBaseTokenAddress: anchor.web3.PublicKey,
-    quoteMint: anchor.web3.PublicKey
 ): Promise<anchor.web3.TransactionInstruction> {
     let [depositAccountAddress, depositAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
         [market.toBuffer(), user.toBuffer()],
         program.programId
     );
-    let [lendingPoolAddress, lendingPoolBump] = await anchor.web3.PublicKey.findProgramAddress(
-        [new anchor.web3.PublicKey(BASE_ADDRESS).toBuffer(), quoteMint.toBuffer()],
-        program.programId
-    );
+
     const ix = await program.methods
         .withdrawBase(amount)
         .accountsPartial({
             user: user,
             marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
             marketState: market,
-            // lendingPool: lendingPoolAddress,
             baseMint: marketState.baseMintAddress,
             userBaseToken: userBaseTokenAddress,
             baseDepositVault: marketState.baseDepositAddress,
@@ -598,17 +566,12 @@ export async function borrowIx(
     amount: anchor.BN,
     user: anchor.web3.PublicKey,
     market: anchor.web3.PublicKey,
-    program: anchor.Program<Limitless>,
     marketState: any,
+    program: anchor.Program<Limitless>,
     userQuoteTokenAddress: anchor.web3.PublicKey,
-    quoteMint: anchor.web3.PublicKey
 ): Promise<anchor.web3.TransactionInstruction> {
     let [depositAccountAddress, depositAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
         [market.toBuffer(), user.toBuffer()],
-        program.programId
-    );
-    let [lendingPoolAddress, lendingPoolBump] = await anchor.web3.PublicKey.findProgramAddress(
-        [new anchor.web3.PublicKey(BASE_ADDRESS).toBuffer(), quoteMint.toBuffer()],
         program.programId
     );
     const ix = await program.methods
@@ -617,7 +580,6 @@ export async function borrowIx(
             user: user,
             marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
             marketState: market,
-            // lendingPool: lendingPoolAddress,
             userQuoteToken: userQuoteTokenAddress,
             quoteTokenVault: marketState.quoteMintTokenAddress,
             quoteTokenFloorVault: marketState.quoteMintFloorTokenAddress,
@@ -652,7 +614,7 @@ export async function repayIx(
 }
 
 //math
-export const lookupLimitUp = async (
+export async function lookupLimitUp(
     cost: Decimal,
     constant: Decimal,
     startQ: Decimal,
@@ -660,7 +622,7 @@ export const lookupLimitUp = async (
     divisorPow: Decimal,
     pow1: Decimal,
     pow2: Decimal
-): Promise<Decimal> => {
+): Promise<Decimal> {
     // Convert all inputs to Decimal if they aren't already
 
     // Calculate costX using Decimal operations
@@ -678,7 +640,6 @@ function solveForXUp(a: Decimal, k: Decimal, z: Decimal, divisorPow: Decimal, po
     let x = xInitial;
     const tolerance = new Decimal(1e-5);
     const maxIterations = 100;
-    console.log("toleralance", tolerance)
     for (let i = 0; i < maxIterations; i++) {
         const fValue = computeFUp(x, a, k, z, divisorPow, pow1, pow2);
         const fPrimeValue = computeFPrimeUp(x, k, divisorPow, pow1, pow2);
@@ -688,15 +649,12 @@ function solveForXUp(a: Decimal, k: Decimal, z: Decimal, divisorPow: Decimal, po
         }
 
         const xNew = x.minus(fValue.dividedBy(fPrimeValue));
-        console.log("x new", xNew.toString(), x.toString())
         if (xNew.minus(x).abs().lessThan(tolerance)) {
-            console.log("iterations: ", i)
             return xNew;
         }
 
         x = xNew;
     }
-    console.log("iterations: ", maxIterations)
 
     return x;
     //throw new Error('Maximum iterations exceeded. No solution found.');
@@ -783,13 +741,12 @@ function computeFUp(x: Decimal, a: Decimal, k: Decimal, z: Decimal, divisorPow: 
         .plus(new Decimal(100000).times(z));
     return termX.minus(termZ).minus(a);
 }
-export const lookupLimitDownDec = async (
+export async function lookupLimitDown(
     constant: Decimal,
     newCqd: Decimal,
     cqd: Decimal,
-    quoteDecimals: Decimal,
     divisorPow: Decimal, pow1: Decimal, pow2: Decimal
-): Promise<Decimal> => {
+): Promise<Decimal> {
     // Create Decimal instances
     
 
@@ -839,13 +796,12 @@ export const lookupLimitDownDec = async (
     // Convert back to a number. Watch out for very large or very small values.
     return result
 };
-export const lookupLimitUpWithOutput = async (
+export async function lookupLimitUpWithOutput(
     constant: Decimal,
     newCqd: Decimal,
     cqd: Decimal,
-    quoteDecimals: Decimal,
     divisorPow: Decimal, pow1: Decimal, pow2: Decimal
-): Promise<Decimal> => {
+): Promise<Decimal> {
     // Validate 'constant'
     if (constant.lte(0) || constant.eq(1)) {
         throw new Error("Parameter 'k' must be greater than 0 and not equal to 1.");
@@ -883,13 +839,13 @@ export const lookupLimitUpWithOutput = async (
 
     return a;
 }
-export const lookupLimitDownWithOutput = async (
+export async function lookupLimitDownWithOutput(
     proceeds: Decimal,
     constant: Decimal,
     startQ: Decimal,
     quoteDecimals: Decimal,
     divisorPow: Decimal, pow1: Decimal, pow2: Decimal
-): Promise<Decimal> => {
+): Promise<Decimal> {
     // Convert the base to Decimal
     const base = new Decimal(10);
     // Calculate basePow using Decimal methods
@@ -969,18 +925,18 @@ function computeFPrimeDown(x: Decimal, k: Decimal, divisorPow: Decimal, pow1: De
 
     return derivative;
 }
-export function findRoot(a: Decimal, s: Decimal, k: Decimal): Decimal {
+export function findRoot(a: Decimal, s: Decimal, k: Decimal, divisorPow: Decimal): Decimal {
     // First, use the bisection method to find a good initial guess
-    const initialGuess = bisectionMethod(a, s, k);
+    const initialGuess = bisectionMethod(a, s, k, divisorPow);
 
     // Now, refine the guess using Newton-Raphson
-    let x = initialGuess;
+    let x = initialGuess;   
     const epsilon = new Decimal('1e-5');  // Relative tolerance
     const maxIterations = 1000;
 
     for (let i = 0; i < maxIterations; i++) {
-        const fx = f(x, a, s, k);
-        const fpx = fPrime(x, s, k);
+        const fx = f(x, a, s, k, divisorPow);
+        const fpx = fPrime(x, s, k, divisorPow);
 
         if (fpx.abs().lessThan('1e-30')) {
             throw new Error('Derivative is too small; Newton-Raphson method fails.');
@@ -998,21 +954,24 @@ export function findRoot(a: Decimal, s: Decimal, k: Decimal): Decimal {
 
     throw new Error('Newton-Raphson method did not converge within the maximum number of iterations.');
 }
-function bisectionMethod(a: Decimal, s: Decimal, k: Decimal): Decimal {
+function bisectionMethod(a: Decimal, s: Decimal, k: Decimal, divisorPow: Decimal): Decimal {
+    // const divisorPowExp = new Decimal(10).pow(divisorPow);
     let x_low = new Decimal('1');  // Lower bound
     let x_high = a;  // Upper bound (since a = (x-s) * something, x cannot be larger than a)
     const maxIterations = 1000;
     const epsilon = new Decimal('1e-5');
+    let xm = new Decimal(0)
 
     for (let i = 0; i < maxIterations; i++) {
         const x_mid = x_low.plus(x_high).div(2);
-        const f_mid = f(x_mid, a, s, k);
+        const f_mid = f(x_mid, a, s, k, divisorPow);
+        xm = x_mid;
 
         if (f_mid.abs().lessThan(epsilon)) {
             return x_mid;
         }
 
-        const f_low = f(x_low, a, s, k);
+        const f_low = f(x_low, a, s, k, divisorPow);
 
         if (f_low.times(f_mid).lessThan(0)) {
             x_high = x_mid;
@@ -1025,24 +984,26 @@ function bisectionMethod(a: Decimal, s: Decimal, k: Decimal): Decimal {
             return x_mid;
         }
     }
-
-    throw new Error('Bisection method did not converge within the maximum number of iterations.');
+    return xm
+    // throw new Error('Bisection method did not converge within the maximum number of iterations.');
 }
-function f(x: Decimal, a: Decimal, s: Decimal, k: Decimal): Decimal {
-    const exp = x.div(1e12).plus(1);  // 1 + x / 10^12
+function f(x: Decimal, a: Decimal, s: Decimal, k: Decimal, divisorPow: Decimal): Decimal {
+    const divisorPowExp = new Decimal(10).pow(divisorPow);
+    const exp = x.div(divisorPowExp).plus(1);  // 1 + x / 10^12
     const kExp = k.pow(exp);  // k^(1 + x / 10^12)
     const sTerm = x.times(kExp).div(1e8);  // x * k^(1 + x / 10^12) / 10^8
 
     // f(x) = (x - s) * (x * k^(1 + x / 10^12) / 10^8 + 100000) - a
     return (x.minus(s)).times(sTerm.plus(100000)).minus(a);
 }
-function fPrime(x: Decimal, s: Decimal, k: Decimal): Decimal {
-    const exp = x.div(1e12).plus(1);  // 1 + x / 10^12
+function fPrime(x: Decimal, s: Decimal, k: Decimal, divisorPow: Decimal): Decimal {
+    const divisorPowExp = new Decimal(10).pow(divisorPow);
+    const exp = x.div(divisorPowExp).plus(1);  // 1 + x / 10^12
     const ln_k = k.ln();  // Natural log of k
     const kExp = k.pow(exp);  // k^(1 + x / 10^12)
 
     const sTerm = x.times(kExp).div(1e8);  // x * k^(1 + x / 10^12) / 10^8
-    const ds_dx = kExp.div(1e8).times(new Decimal(1).plus(x.times(ln_k).div(1e12)));  // Derivative of the exponential term
+    const ds_dx = kExp.div(1e8).times(new Decimal(1).plus(x.times(ln_k).div(divisorPowExp)));  // Derivative of the exponential term
 
     const v = sTerm.plus(100000);  // v(x) = x * k^(1 + x / 10^12) / 10^8 + 100000
     const dv_dx = ds_dx;  // Derivative of v(x)
@@ -1050,162 +1011,89 @@ function fPrime(x: Decimal, s: Decimal, k: Decimal): Decimal {
     // f'(x) = v(x) + (x - s) * dv/dx
     return v.plus(x.minus(s).times(dv_dx));
 }
-export function getPriceDec(x: Decimal, k: Decimal, divisorPow: Decimal, gradient: Decimal, offset: Decimal): number {
+export async function getPrice(x: Decimal, k: Decimal, divisorPow: Decimal, gradient: Decimal, offset: Decimal): Promise<Decimal> {
     return x.times(k.pow(new Decimal(1).plus(x.div(new Decimal(10).pow(divisorPow)))))
         .div(gradient)
         .plus(offset)
-        .toNumber(); // Convert Decimal to number
+        //.toNumber(); // Convert Decimal to number
 }
-/**
- * Computes an initial approximation for the fractional part of the exponent,
- * i.e. for k^(fractionalExponent) where
- *   fractionalExponent = (1 + x/1e12) - floor(1 + x/1e12).
- *
- * This approximation can be used as the starting guess for further on-chain refinement.
- *
- * @param k - The base as a Decimal (e.g. 1.5).
- * @param x - The x value as a Decimal (used to compute the full exponent 1 + x/1e12).
- * @returns A Decimal approximation of k^(fractionalExponent).
- */
-export function fractionalApproximation(k: Decimal, x: Decimal): Decimal {
-    // Ensure k > 0.
-    if (k.lte(0)) {
-      throw new Error("Base k must be positive.");
-    }
-  
-    const one = new Decimal(1);
-    // Compute the full exponent: 1 + x/1e12.
-    const fullExponent = one.plus(x.dividedBy(new Decimal("1e12")));
-    // Extract the fractional part: fullExponent - floor(fullExponent)
-    const fractionalExponent = fullExponent.minus(fullExponent.floor());
-    // Compute the approximation:
-    // k^(fractionalExponent) = exp(fractionalExponent * ln(k))
-    const result = Decimal.exp(fractionalExponent.times(k.ln()));
-    return result;
-}
-export function quantityFromProceedsExpo(
-    floorq: bigint,
-    proceedsNormalized: bigint,
-    gradient: bigint,
-    divisorPow: bigint,
-    offset: bigint,
+export async function quantityFromProceedsWPrice(
+    proceedsNormalized: Decimal,
     quoteDecimals: number,
-): bigint {
-    // Calculate the price using the same parameters
-    const price = BigInt(Math.floor(getPrice(Number(floorq), 1.5)));
-
-    // Compute the base power
-    const basePow = BigInt(10) ** BigInt(quoteDecimals);
-
-    // Adjust proceedsNormalized back to its original value if it was decreased
-    let adjustedProceeds = proceedsNormalized;
-    if (proceedsNormalized > BigInt(1)) {
-        adjustedProceeds = proceedsNormalized + BigInt(1);
-    }
-
-    // Ensure price is not zero to prevent division by zero
-    if (price === BigInt(0)) {
-        throw new Error("Division by zero error: price is zero.");
-    }
-
-    // Calculate the quantity by rearranging the original formula
-    const quantity = (adjustedProceeds * basePow) / price;
-
-    return quantity;
-}
-export function quantityFromProceedsExpoWPrice(
-    floorq: bigint,
-    proceedsNormalized: bigint,
-    gradient: bigint,
-    divisorPow: bigint,
-    offset: bigint,
-    quoteDecimals: number,
-    price: bigint,
+    price: Decimal,
     subOne: boolean
-): bigint {
-    // Calculate the price using the same parameters
-    //const price = BigInt(Math.floor(getPrice(Number(floorq), 1.5)));
-
-    // Compute the base power
-    const basePow = BigInt(10) ** BigInt(quoteDecimals);
+): Promise<Decimal> {
+    const basePow = new Decimal(10).pow(quoteDecimals);
 
     // Adjust proceedsNormalized back to its original value if it was decreased
     let adjustedProceeds = proceedsNormalized;
-    if (proceedsNormalized > BigInt(1)) {
-        adjustedProceeds = proceedsNormalized + BigInt(1);
+    if (proceedsNormalized.greaterThan(new Decimal(1))) {
+        adjustedProceeds = proceedsNormalized.plus(1);
     }
+
     // Ensure price is not zero to prevent division by zero
-    if (price === BigInt(0)) {
+    if (price.equals(0)) {
         throw new Error("Division by zero error: price is zero.");
     }
+
     // Calculate the quantity by rearranging the original formula
-    let quantity = ((adjustedProceeds * basePow) / price);
-    if (quantity > 0 && subOne) {
-        quantity = quantity + BigInt(1);
+    let quantity = adjustedProceeds.mul(basePow).dividedBy(price);
+    if (quantity.greaterThan(0) && subOne) {
+        quantity = quantity.plus(1);
     }
-    //quantity = 
     return quantity;
 }
-export function floorProceedsExpo(
-    floorq: bigint,
-    quantity: bigint,
-    gradient: bigint,
-    divisorPow: bigint,
-    offset: bigint,
+export async function floorProceeds(
+    floorq: Decimal,
+    quantity: Decimal,
+    gradient: Decimal,
+    divisorPow: Decimal,
+    offset: Decimal,
     quoteDecimals: number,
-): bigint {
+): Promise<Decimal> {
     // Calculate the price using the same parameters
-    const price = BigInt(Math.floor(getPrice(Number(floorq), 1.5)));
-    // console.log("the price", price)
+    const price = (await getPrice(
+        floorq, 
+        new Decimal(1.5), 
+        divisorPow, 
+        gradient, 
+        offset  
+    )).floor();
+    
+    // Compute the base power as a Decimal
+    const basePow = new Decimal(10).pow(quoteDecimals);
 
-    // Compute the base power
-    const basePow = BigInt(10) ** BigInt(quoteDecimals);
+    // Calculate the total proceeds using Decimal multiplication
+    const total = price.mul(quantity);
 
-    // Calculate the total proceeds
-    const total = price * quantity;
-
-    // Calculate proceeds normalized
-    let proceedsNormalized = total / basePow;
+    // Calculate proceeds normalized by dividing total by basePow
+    let proceedsNormalized = total.div(basePow);
 
     // Subtract 1 if proceedsNormalized is greater than 1
-    if (proceedsNormalized > BigInt(1)) {
-        proceedsNormalized -= BigInt(1);
+    if (proceedsNormalized.gt(1)) {
+        proceedsNormalized = proceedsNormalized.minus(1);
     }
-
-    // Logging the proceedsNormalized value (equivalent to Rust's msg!)
-    // console.log(`floor proceeds - proceeds normalized: ${proceedsNormalized}`);
 
     return proceedsNormalized;
 }
-export function floorProceedsExpoWPrice(
-    floorq: bigint,
-    quantity: bigint,
-    gradient: bigint,
-    divisorPow: bigint,
-    offset: bigint,
+export async function floorProceedsWPrice(
+    quantity: Decimal,
     quoteDecimals: number,
-    price: bigint,
-): bigint {
-    // Calculate the price using the same parameters
-    //const price = BigInt(Math.floor(getPriceDec(Number(floorq), 1.5)));
-    // console.log("the price", price)
+    price: Decimal,
+): Promise<Decimal> {
+    // Compute the base power as a Decimal
+    const basePow = new Decimal(10).pow(quoteDecimals);
 
-    // Compute the base power
-    const basePow = BigInt(10) ** BigInt(quoteDecimals);
+    // Calculate the total proceeds using Decimal multiplication
+    const total = price.mul(quantity);
 
-    // Calculate the total proceeds
-    const total = price * quantity;
-
-    // Calculate proceeds normalized
-    let proceedsNormalized = total / basePow;
+    // Calculate proceeds normalized by dividing by basePow
+    let proceedsNormalized = total.dividedBy(basePow);
 
     // Subtract 1 if proceedsNormalized is greater than 1
-    if (proceedsNormalized > BigInt(1)) {
-        proceedsNormalized -= BigInt(1);
+    if (proceedsNormalized.greaterThan(1)) {
+        proceedsNormalized = proceedsNormalized.minus(1);
     }
-
-    // Logging the proceedsNormalized value (equivalent to Rust's msg!)
-    // console.log(`floor proceeds - proceeds normalized: ${proceedsNormalized}`);
 
     return proceedsNormalized;
 }
