@@ -337,12 +337,13 @@ export async function buyIx(
     marketState: any
 ): Promise<anchor.web3.TransactionInstruction>{
     //TODO pass in market as parameter
+    console.log("q:", quantity.toString())
+    console.log("maxC:", maxCost.toString())
     const ix = await program.methods
         .buy({
             quantity: quantity,
             maxCost: maxCost
-        }
-        )
+        })
         .accountsPartial({
             user: user,
             marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
@@ -374,8 +375,7 @@ export  async function buyIxCreator(
         .creatorBuy({
             quantity: quantity,
             maxCost: maxCost
-        }
-        )
+        })
         .accountsPartial({
             user: user,
             marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),

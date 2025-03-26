@@ -34,8 +34,8 @@ async function runShowcase(client: LimitlessSDK, quote: PublicKey) {
         quote,
         client.wallet.publicKey
     );
-    const start = (Date.now() / 1000) + (60 * 10);
-    const presaleOffset = 60 * 30
+    const start = (Date.now() / 1000) + (60 * 6);
+    const presaleOffset = 60 * 15
     let market = await client.createToken(
         associatedQuoteAddress,
         quote,
@@ -70,30 +70,30 @@ async function runShowcase(client: LimitlessSDK, quote: PublicKey) {
     let cost = new Decimal(100).mul(10 ** marketState.quoteDecimals);
     //get buyInfo - price impact, new price, maxCost
     let buyPresaleInfo = await client.presaleBuyInfo(cost, marketState)
-    console.log("Expected amount that will be added to the presale pool:", buyPresaleInfo.out.toString())
-    console.log(`Expected new price: ${buyPresaleInfo.newPrice.toString()}. Expected price impact: ${buyPresaleInfo.priceIncrease.toString()}`)
-    console.log(`Coupon share of pool: ${buyPresaleInfo.presaleInfo.baseSharePercent}%. Expected base tokens received: ${buyPresaleInfo.presaleInfo.baseShare.toString()}. Average price: ${buyPresaleInfo.presaleInfo.avgPrice.toString()}`)
+    console.log("Expected amount that will be added to the presale pool:", buyPresaleInfo.out.div(10 ** marketState.baseDecimals).toString())
+    console.log(`Expected new price: ${buyPresaleInfo.newPrice.toString()}. Expected price impact: ${buyPresaleInfo.priceIncrease.toString()}%`)
+    console.log(`Expected coupon share of pool: ${buyPresaleInfo.presaleInfo.baseSharePercent}%. Expected base tokens received: ${buyPresaleInfo.presaleInfo.baseShare.toString()}. Average price: ${buyPresaleInfo.presaleInfo.avgPrice.toString()}`)
     //todo expected share this coupons will have
     let presaleBuyRes = await client.presaleBuy(
-        new anchor.BN(cost.toString()),
+        new anchor.BN(buyPresaleInfo.out.toString()),
         associatedQuoteAddress,
         marketAddress,
         marketState
     )
     console.log("Presale buy tx:", presaleBuyRes.txid)
     console.log("Getting presale info..")
+    await new Promise(r => setTimeout(r, 20000));
     let coupons = await client.getCoupons(marketAddress, client.wallet.publicKey)
-    console.log(coupons)
     let couponsQuoteAmt = coupons[0].reduce((sum, coupon) => 
         sum.plus(new Decimal(coupon.quoteDeposited.toString()).dividedBy(new Decimal(10).pow(marketState.quoteDecimals))), 
         new Decimal(0)
     );
-    console.log(`Total coupons bought: ${coupons.length}. Total quote input: ${couponsQuoteAmt.toString()}`)
+    console.log(`Total coupons bought: ${coupons[0].length}. Total quote input: ${couponsQuoteAmt.toString()}`)
     marketState = await client.getMarket(marketAddress)
     let presaleInfo = await client.getPresaleInfo(couponsQuoteAmt, marketState)
     console.log(`Total quote in presale ${presaleInfo.totalQuote.toString()}. Total base in presale ${presaleInfo.totalBase.toString()}`)
     console.log(`Presale expected base receive amount ${presaleInfo.baseShare}. Base share % ${presaleInfo.baseSharePercent.toString()}. Average price ${presaleInfo.avgPrice.toString()}`)
-    while(Date.now() / 1000 < presaleDate.getTime() / 1000) {
+    while(Date.now() / 1000 < startDate.getTime() / 1000) {
         console.log("Waiting for presale to end")
         console.log("Seconds until market launch:", (Date.now() - startDate.getTime()) / 1000)
         await new Promise(r => setTimeout(r, 10000));
@@ -103,11 +103,13 @@ async function runShowcase(client: LimitlessSDK, quote: PublicKey) {
     let couponKeys = coupons[1]
     let claimPresaleRes = await client.claimPresale(couponKeys, marketAddress, marketState)
     console.log("Claim presale tx:", claimPresaleRes.txid)
+    await new Promise(r => setTimeout(r, 20000));
 
     //check base token balance
     let baseTokenAddress = await getAssociatedTokenAddress(marketState.baseMintAddress, client.wallet.publicKey)
     let baseBalance = await getAccount(client.connection, baseTokenAddress) 
-    console.log("Base token balance:", baseBalance.amount / BigInt(10 ** marketState.baseDecimals))
+    console.log("Base token balance:", new Decimal(baseBalance.amount.toString()).div(10 ** marketState.baseDecimals).toString())
+    marketState = await client.getMarket(marketAddress)
 
     //update and boost floor
     let newFloor = await client.getUpdateFloorQuantity(marketState)
@@ -128,31 +130,39 @@ async function runShowcase(client: LimitlessSDK, quote: PublicKey) {
     console.log("Creating deposit account!")
     let depositAccountRes = await client.createDepositAccount(marketAddress)
     console.log("Create deposit account tx:", depositAccountRes.txid)
+    await new Promise(r => setTimeout(r, 20000));
 
     //get deposit account //TODO clean deposit account struct with all the interest stuff
     let depositAccount = await client.getDepositAccount(marketAddress)
     console.log("Deposit account base tokens deposited", depositAccount.totalDepositBase.toString())
+    await new Promise(r => setTimeout(r, 20000));
 
     //deposit base tokens
     console.log(`Depositing ${baseBalance.amount / BigInt(10 ** marketState.baseDecimals)} into deposit account.`)
     let depositIntoAccountRes = await client.deposit(new anchor.BN(baseBalance.amount.toString()), marketAddress, marketState, baseTokenAddress)
     console.log("Deposit tx:", depositIntoAccountRes.txid)
+    await new Promise(r => setTimeout(r, 20000));
 
     //check deposited balance
     depositAccount = await client.getDepositAccount(marketAddress)
     console.log("Deposit account base tokens deposited", new Decimal(depositAccount.totalDepositBase.toString()).div(10 ** marketState.baseDecimals).toString())
+    marketState = await client.getMarket(marketAddress)
+    console.log("Floor price:", new Decimal(marketState.floorPrice.toString()).div(10 ** (marketState.quoteDecimals + marketState.baseDecimals)))
+    await new Promise(r => setTimeout(r, 20000));
+    
 
     //get withdrawable
     let withdrawableAmount = await client.getWithdrawableAmount(depositAccount, marketState);
-    console.log("Withdrawable amount:", withdrawableAmount.toString())
+    console.log("Withdrawable amount:", withdrawableAmount.div(10 ** marketState.baseDecimals).toString())
     
     //get borrowable 
     let borrowableAmount = await client.getBorrowableAmount(depositAccount, marketState);
-    console.log("Borrowable amount:", borrowableAmount.toString())
+    console.log("Borrowable amount:", borrowableAmount.div(10 ** marketState.quoteDecimals).toString())
 
     //max borrow
-    let borrowRes = await client.borrow(new anchor.BN(borrowableAmount.toString()), marketAddress, marketState, associatedQuoteAddress)
+    let borrowRes = await client.borrow(new anchor.BN(borrowableAmount.floor().toString()), marketAddress, marketState, associatedQuoteAddress)
     console.log("Borrow tx:", borrowRes.txid)
+    await new Promise(r => setTimeout(r, 20000));
 
     //check borrowed
     depositAccount = await client.getDepositAccount(marketAddress)
@@ -160,24 +170,26 @@ async function runShowcase(client: LimitlessSDK, quote: PublicKey) {
 
     //get withdrawable
     withdrawableAmount = await client.getWithdrawableAmount(depositAccount, marketState);
-    console.log("Withdrawable amount:", withdrawableAmount.toString())
+    console.log("Withdrawable amount:", withdrawableAmount.div(10 ** marketState.baseDecimals).toString())
     
     //get borrowable 
     borrowableAmount = await client.getBorrowableAmount(depositAccount, marketState);
-    console.log("Borrowable amount:", borrowableAmount.toString())
+    console.log("Borrowable amount:", borrowableAmount.div(10 ** marketState.quoteDecimals).toString())
 
     //buy some more coins with borrowed funds
     console.log("Buying for", new Decimal(depositAccount.totalBorrowQuote.toString()).div(10 ** marketState.quoteDecimals).toString())
-    let buyInfo = await client.buyInfo(depositAccount.totalBorrowQuote, marketState)
+    let buyInfo = await client.buyInfo(new Decimal(depositAccount.totalBorrowQuote.toString()), marketState)
     console.log("Expected amount to receive:", buyInfo.out.toString())
     console.log(`Expected new price: ${buyInfo.newPrice.toString()}. Expected price impact: ${buyInfo.priceIncrease.toString()}`)
 
     //buy with 1% slippage
     let maxCost = new anchor.BN(new Decimal(depositAccount.totalBorrowQuote.toString()).mul(1.01).floor().toString())
-    let buyRes  = await client.buy(buyInfo.out, maxCost, marketAddress, marketState, associatedQuoteAddress)
+    let buyRes  = await client.buy(new anchor.BN(buyInfo.out.mul(10 ** marketState.baseDecimals).toString()), maxCost, marketAddress, marketState, associatedQuoteAddress)
     console.log("Buy tx:", buyRes.txid)
+    await new Promise(r => setTimeout(r, 20000));
 
     //check balance
+    marketState = await client.getMarket(marketAddress)
     baseBalance = await getAccount(client.connection, baseTokenAddress) 
     console.log("Base token balance:", baseBalance.amount / BigInt(10 ** marketState.baseDecimals))
 
@@ -190,6 +202,10 @@ async function runShowcase(client: LimitlessSDK, quote: PublicKey) {
     console.log(`Sell ammQ: ${sellInfo.sellAmmQ.toString()}. Sell floorQ: ${sellInfo.sellFloorQ.toString()}. TotalQ: ${baseBalance.amount}`)
     console.log(`Amm out: ${sellInfo.outAmm.toString()}. Floor out: ${sellInfo.sellAmmQ.toString()}. Total out: ${baseBalance.amount}`)
     console.log(`Expected new price: ${sellInfo.newPrice.toString()}. Expected price impact: ${sellInfo.priceIncrease.toString()}`)
+    let sellRes = await client.sell()
+    await new Promise(r => setTimeout(r, 20000));
+
+    marketState = await client.getMarket(marketAddress)
 
     //repay loan
     console.log("Repaying loan of:", depositAccount.totalBorrowQuote.toString())

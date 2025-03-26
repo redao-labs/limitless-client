@@ -481,9 +481,10 @@ export class LimitlessSDK {
             new Decimal(marketState.pow2)
         )).floor()
         let cqdDiff = newCqd.sub(marketState.cqd.toString())
-        marketState.presaleBase = new anchor.BN(new Decimal(marketState.presaleBase.toString()).add(cqdDiff).toString())
-        let presaleInfo = await this.getPresaleInfo(costPostFee, marketState)
-        let out = cqdDiff.div(Math.pow(10, marketState.baseDecimals))
+        marketState.presaleQuote = new anchor.BN(new Decimal(marketState.presaleQuote.toString()).add(costPostFee).floor().toString())
+        marketState.presaleBase = new anchor.BN(new Decimal(marketState.presaleBase.toString()).add(cqdDiff).floor().toString())
+        let presaleInfo = await this.getPresaleInfo(costPostFee.div(new Decimal(10).pow(marketState.quoteDecimals)), marketState)
+        let out = cqdDiff//.div(Math.pow(10, marketState.baseDecimals))
         let oldPrice = (await getPrice(
             new Decimal(marketState.cqd.toString()),
             new Decimal(1.5),
@@ -498,7 +499,7 @@ export class LimitlessSDK {
             new Decimal(marketState.gradient.toString()),
             new Decimal(marketState.offset.toString())
         )).div(10 ** (marketState.quoteDecimals + marketState.scalerDecimals))
-        let priceIncrease = newPrice.sub(oldPrice).div(oldPrice).div(100)
+        let priceIncrease = newPrice.sub(oldPrice).div(oldPrice).mul(100)
         return { out, newPrice, priceIncrease, presaleInfo }
     }
     async presaleBuy(
@@ -563,7 +564,7 @@ export class LimitlessSDK {
                 const couponIx = await claimPresaleIx(
                     couponAddresses[i],
                     this.wallet.publicKey,
-                    userBaseToken,
+                    associatedBaseAddress,
                     market,
                     marketState,
                     this.program
@@ -581,7 +582,7 @@ export class LimitlessSDK {
         cost: Decimal,
         marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never
     ): Promise<{ out: Decimal; newPrice: Decimal; priceIncrease: Decimal; }> {
-        let costPostFee = cost.div(new Decimal(1).plus(new Decimal(0.001)).plus(new Decimal(marketState.presaleFee).div(10000))).mul(new Decimal(0.999999687))
+        let costPostFee = cost.div(new Decimal(1).plus(new Decimal(0.001)).plus(new Decimal(marketState.buyFee).div(10000))).mul(new Decimal(0.999999687))
         let newCqd = (await lookupLimitUp(
             new Decimal(costPostFee),
             new Decimal(1.5), //todo get from state
@@ -607,7 +608,7 @@ export class LimitlessSDK {
             new Decimal(marketState.gradient.toString()),
             new Decimal(marketState.offset.toString())
         )).div(10 ** (marketState.quoteDecimals + marketState.scalerDecimals))
-        let priceIncrease = newPrice.sub(oldPrice).div(oldPrice).div(100)
+        let priceIncrease = newPrice.sub(oldPrice).div(oldPrice).mul(100)
         return { out, newPrice, priceIncrease }
     }
     async buy(
@@ -643,7 +644,7 @@ export class LimitlessSDK {
             quantity,
             maxCost,
             this.wallet.publicKey,
-            userBaseToken,
+            associatedBaseAddress,
             userQuoteToken,
             market,
             this.program,
@@ -704,7 +705,7 @@ export class LimitlessSDK {
             new Decimal(marketState.gradient.toString()),
             new Decimal(marketState.offset.toString())
           )).div(10 ** (marketState.baseDecimals + marketState.scalerDecimals))
-          let priceIncrease = newPrice.sub(oldPrice).div(oldPrice).div(100)
+          let priceIncrease = newPrice.sub(oldPrice).div(oldPrice).mul(100)
           //sell amm q, sell floor q, amm out, floor out, new price, price increase
           let sellAmmQ = new Decimal(marketState.cqd.toString()).sub(newCqd)
           let sellFloorQ = quantity.sub(sellAmmQ)
@@ -757,7 +758,7 @@ export class LimitlessSDK {
             minProceeds,
             this.wallet.publicKey,
             userBaseToken,
-            userQuoteToken,
+            associatedQuoteAddress,
             market,
             marketState,
             this.program,
@@ -1000,23 +1001,32 @@ export class LimitlessSDK {
             }
         ]);
         // Map ProgramAccount objects to their account data
-        return [couponsData.map(coupon => coupon.account), couponsData.map(coupon => coupon.publicKey)]
-    }
+        const accounts = couponsData.map(coupon => coupon.account);
+        const publicKeys = couponsData.map(coupon => coupon.publicKey);
+        return [accounts, publicKeys];
+        }
 
-    async getPresaleInfo(
+        async getPresaleInfo(
         userQuoteInput: Decimal,
         marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never
-    ): Promise<{ totalQuote: Decimal; totalBase: Decimal; baseShare: Decimal; baseSharePercent: Decimal, avgPrice: Decimal }> {
+        ): Promise<{ totalQuote: Decimal; totalBase: Decimal; baseShare: Decimal; baseSharePercent: Decimal; avgPrice: Decimal }> {
+        // console.log("User quote input:", userQuoteInput.toString());
         const globalQuote = new Decimal(marketState.presaleQuote.toString())
             .div(new Decimal(10).pow(marketState.quoteDecimals));
+        // console.log("Global quote:", globalQuote.toString());
         const totalBase = new Decimal(marketState.presaleBase.toString())
             .div(new Decimal(10).pow(marketState.baseDecimals));
+        // console.log("Total base:", totalBase.toString());
         const share = userQuoteInput.div(globalQuote);
-        const baseShare = totalBase.mul(share)
+        // console.log("Share:", share.toString());
+        const baseShare = totalBase.mul(share);
+        // console.log("Base share:", baseShare.toString());
         const baseSharePercent = share.mul(100);
-        const avgPrice = globalQuote.div(totalBase)
+        // console.log("Base share percent:", baseSharePercent.toString());
+        const avgPrice = globalQuote.div(totalBase);
+        // console.log("Average price:", avgPrice.toString());
         return { totalQuote: globalQuote, totalBase, baseShare, baseSharePercent, avgPrice };
-    }
+        }
 
     //get market
     async getMarket(
