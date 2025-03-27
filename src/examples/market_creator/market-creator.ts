@@ -107,6 +107,7 @@ async function runCreator(client: LimitlessSDK, connectionUmi: string, quote: Pu
         break
         await new Promise(r => setTimeout(r, 6000));
     }
+    //TODO, claim all fees
 }
 
 async function main() {

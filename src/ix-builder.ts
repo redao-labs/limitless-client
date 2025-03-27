@@ -336,9 +336,6 @@ export async function buyIx(
     program: anchor.Program<Limitless>,
     marketState: any
 ): Promise<anchor.web3.TransactionInstruction>{
-    //TODO pass in market as parameter
-    console.log("q:", quantity.toString())
-    console.log("maxC:", maxCost.toString())
     const ix = await program.methods
         .buy({
             quantity: quantity,
@@ -400,17 +397,14 @@ export  async function sellIx(
     userQuoteToken: anchor.web3.PublicKey,
     market: anchor.web3.PublicKey,
     marketState: any,
-    program: anchor.Program<Limitless>,
-    cqd_guess: anchor.BN,
-    ncqd_guess: anchor.BN
+    program: anchor.Program<Limitless>
 ): Promise<anchor.web3.TransactionInstruction>{
     console.log("user", user.toBase58())
     const ix = await program.methods
         .sell({
             quantity: quantity,
             minProceeds: minProceeds
-        } 
-        )
+        })
         .accountsPartial({
             user: user,
             marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
@@ -789,7 +783,6 @@ export async function lookupLimitDown(
     // Outer terms
     const termZ = k_exponentZ.mul(termZ_inner).plus(new Decimal(100000).mul(cqd));
     const termX = k_exponentX.mul(termX_inner).plus(new Decimal(100000).mul(newCqd));
-    console.log("haiiii")
     // Final result
     const result = termZ.minus(termX);
 

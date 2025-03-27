@@ -184,6 +184,7 @@ async function runShowcase(client: LimitlessSDK, quote: PublicKey) {
 
     //buy with 1% slippage
     let maxCost = new anchor.BN(new Decimal(depositAccount.totalBorrowQuote.toString()).mul(1.01).floor().toString())
+    console.log("Max cost:", new Decimal(maxCost.toString()).div(10 ** marketState.quoteDecimals).toString())
     let buyRes  = await client.buy(new anchor.BN(buyInfo.out.mul(10 ** marketState.baseDecimals).toString()), maxCost, marketAddress, marketState, associatedQuoteAddress)
     console.log("Buy tx:", buyRes.txid)
     await new Promise(r => setTimeout(r, 20000));
@@ -191,18 +192,21 @@ async function runShowcase(client: LimitlessSDK, quote: PublicKey) {
     //check balance
     marketState = await client.getMarket(marketAddress)
     baseBalance = await getAccount(client.connection, baseTokenAddress) 
-    console.log("Base token balance:", baseBalance.amount / BigInt(10 ** marketState.baseDecimals))
+    console.log("Base token balance:", new Decimal(baseBalance.amount.toString()).div(10 ** marketState.baseDecimals).toString())
 
     //sell tokens
-    console.log("Selling tokens:", baseBalance.amount / BigInt(10 ** marketState.baseDecimals))
+    console.log("Selling tokens:", new Decimal(baseBalance.amount.toString()).div(10 ** marketState.baseDecimals).toString())
     let sellInfo = await client.sellInfo(
         new Decimal(baseBalance.amount.toString()),
         marketState
     )
     console.log(`Sell ammQ: ${sellInfo.sellAmmQ.toString()}. Sell floorQ: ${sellInfo.sellFloorQ.toString()}. TotalQ: ${baseBalance.amount}`)
-    console.log(`Amm out: ${sellInfo.outAmm.toString()}. Floor out: ${sellInfo.sellAmmQ.toString()}. Total out: ${baseBalance.amount}`)
+    console.log(`Amm out: ${sellInfo.outAmm.toString()}. Floor out: ${sellInfo.outFloor.toString()}. Total out: ${baseBalance.amount}`)
     console.log(`Expected new price: ${sellInfo.newPrice.toString()}. Expected price impact: ${sellInfo.priceIncrease.toString()}`)
-    let sellRes = await client.sell()
+    let minProceeds = new Decimal(sellInfo.outAmm.mul(10 ** marketState.quoteDecimals)).mul(new Decimal(1).minus(new Decimal(0.01).div(100))).floor()
+    console.log("Min proceeds:", minProceeds.toString())
+    let sellRes = await client.sell(new anchor.BN(sellInfo.sellAmmQ.toString()), new anchor.BN(minProceeds.toString()), marketAddress, marketState, baseTokenAddress)
+    console.log("Sell tx:", sellRes.txid)
     await new Promise(r => setTimeout(r, 20000));
 
     marketState = await client.getMarket(marketAddress)
@@ -216,13 +220,14 @@ async function runShowcase(client: LimitlessSDK, quote: PublicKey) {
         associatedQuoteAddress
     )
     console.log("Repay tx:", repayRes.txid)
-    
+    await new Promise(r => setTimeout(r, 20000));
+
     //withdraw 
     depositAccount = await client.getDepositAccount(marketAddress)
     withdrawableAmount = await client.getWithdrawableAmount(depositAccount, marketState);
-    console.log("Withdrawing amount:", withdrawableAmount.toString())
+    console.log("Withdrawing amount:", withdrawableAmount.div(10 ** marketState.baseDecimals).toString())
     let withdrawRes = await client.withdraw(
-        new anchor.BN(withdrawableAmount),
+        new anchor.BN(withdrawableAmount.toString()),
         marketAddress,
         marketState, 
         baseTokenAddress

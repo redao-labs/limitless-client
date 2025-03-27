@@ -728,8 +728,6 @@ export class LimitlessSDK {
         market: PublicKey,
         marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
         userBaseToken: PublicKey,
-        cqd_guess: anchor.BN,
-        ncqd_guess: anchor.BN,
         callback?: TxProgressCallback
     ): Promise<{ txid: string; confirmed: boolean }> {
         let associatedQuoteAddress = await getAssociatedTokenAddress(marketState.quoteMintAddress, this.wallet.publicKey);
@@ -752,7 +750,6 @@ export class LimitlessSDK {
             console.log("pushed base xie")
             instructions.push(quoteIns)
         }
-
         const ix = await sellIx(
             quantity,
             minProceeds,
@@ -761,9 +758,7 @@ export class LimitlessSDK {
             associatedQuoteAddress,
             market,
             marketState,
-            this.program,
-            cqd_guess,
-            ncqd_guess
+            this.program
         );
         instructions.push(ix)
         return await this.buildAndSendTransaction(instructions, callback);
