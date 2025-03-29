@@ -545,7 +545,7 @@ export class LimitlessSDK {
             try {
                 userBaseToken = await getAccount(this.program.provider.connection, associatedBaseAddress);
             } catch (error) {
-                
+
             }
             const instructions: TransactionInstruction[] = [
                 ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 })
@@ -688,7 +688,7 @@ export class LimitlessSDK {
             console.log("floorQ, floorout", floorQ.toString(), floorQuoteOut.toString())
             outputVal = outputVal.add(floorQuoteOut.div(10 ** marketState.quoteDecimals))
             if (new Decimal(marketState.highestFloorQuantity.toString()).greaterThan(marketState.cqd.toString())) {
-              outputVal = floorQuoteOut.div(10 ** marketState.quoteDecimals)
+                outputVal = floorQuoteOut.div(10 ** marketState.quoteDecimals)
             }
         }
         let oldPrice = (await getPrice(
@@ -697,22 +697,22 @@ export class LimitlessSDK {
             new Decimal(marketState.divisorPow || 0),
             new Decimal(marketState.gradient.toString()),
             new Decimal(marketState.offset.toString())
-          )).div(10 ** (marketState.baseDecimals + marketState.scalerDecimals))
-          let newPrice = (await getPrice(
+        )).div(10 ** (marketState.baseDecimals + marketState.scalerDecimals))
+        let newPrice = (await getPrice(
             new Decimal(newCqd.toString()),
             new Decimal(1.5),
             new Decimal(marketState.divisorPow || 0),
             new Decimal(marketState.gradient.toString()),
             new Decimal(marketState.offset.toString())
-          )).div(10 ** (marketState.baseDecimals + marketState.scalerDecimals))
-          let priceIncrease = newPrice.sub(oldPrice).div(oldPrice).mul(100)
-          //sell amm q, sell floor q, amm out, floor out, new price, price increase
-          let sellAmmQ = new Decimal(marketState.cqd.toString()).sub(newCqd)
-          let sellFloorQ = quantity.sub(sellAmmQ)
-          let totalOut = outputVal
-          let ammOut = totalQuoteOut.div(new Decimal(10).pow(marketState.quoteDecimals + marketState.scalerDecimals + marketState.quoteDecimals))
-          let floorOut = floorQuoteOut.div(10 ** marketState.quoteDecimals)
-          return {
+        )).div(10 ** (marketState.baseDecimals + marketState.scalerDecimals))
+        let priceIncrease = newPrice.sub(oldPrice).div(oldPrice).mul(100)
+        //sell amm q, sell floor q, amm out, floor out, new price, price increase
+        let sellAmmQ = new Decimal(marketState.cqd.toString()).sub(newCqd)
+        let sellFloorQ = quantity.sub(sellAmmQ)
+        let totalOut = outputVal
+        let ammOut = totalQuoteOut.div(new Decimal(10).pow(marketState.quoteDecimals + marketState.scalerDecimals + marketState.quoteDecimals))
+        let floorOut = floorQuoteOut.div(10 ** marketState.quoteDecimals)
+        return {
             out: totalOut,
             outAmm: ammOut,
             outFloor: floorOut,
@@ -720,7 +720,7 @@ export class LimitlessSDK {
             sellFloorQ: sellFloorQ,
             newPrice: newPrice,
             priceIncrease: priceIncrease
-          }
+        }
     }
     async sell(
         quantity: anchor.BN,
@@ -999,12 +999,36 @@ export class LimitlessSDK {
         const accounts = couponsData.map(coupon => coupon.account);
         const publicKeys = couponsData.map(coupon => coupon.publicKey);
         return [accounts, publicKeys];
-        }
+    }
 
-        async getPresaleInfo(
+    async getAllUserCoupons(
+        user: PublicKey
+    ): Promise<
+        [Array<typeof this.program.account.presaleCoupon['fetch'] extends (...args: any) => Promise<infer T> ? T : never>, PublicKey[]]
+    > {
+        //console.log("get coupons")
+        if (!this.program) {
+            throw new Error("❌ Program client not initialized!")
+        }
+        //fetch coupons
+        let couponsData = await this.program.account.presaleCoupon.all([
+            {
+                memcmp: {
+                    offset: 8 + 20,
+                    bytes: user.toBase58()
+                }
+            }
+        ]);
+        // Map ProgramAccount objects to their account data
+        const accounts = couponsData.map(coupon => coupon.account);
+        const publicKeys = couponsData.map(coupon => coupon.publicKey);
+        return [accounts, publicKeys];
+    }
+
+    async getPresaleInfo(
         userQuoteInput: Decimal,
         marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never
-        ): Promise<{ totalQuote: Decimal; totalBase: Decimal; baseShare: Decimal; baseSharePercent: Decimal; avgPrice: Decimal }> {
+    ): Promise<{ totalQuote: Decimal; totalBase: Decimal; baseShare: Decimal; baseSharePercent: Decimal; avgPrice: Decimal }> {
         // console.log("User quote input:", userQuoteInput.toString());
         const globalQuote = new Decimal(marketState.presaleQuote.toString())
             .div(new Decimal(10).pow(marketState.quoteDecimals));
@@ -1021,7 +1045,7 @@ export class LimitlessSDK {
         const avgPrice = globalQuote.div(totalBase);
         // console.log("Average price:", avgPrice.toString());
         return { totalQuote: globalQuote, totalBase, baseShare, baseSharePercent, avgPrice };
-        }
+    }
 
     //get market
     async getMarket(
@@ -1060,6 +1084,30 @@ export class LimitlessSDK {
         );
         let depositAccount = await this.program.account.depositAccount.fetch(depositAccountAddress);
         return depositAccount;
+    }
+
+    async getAllUserDepositAccounts(
+        user: PublicKey
+    ): Promise<
+        [Array<typeof this.program.account.depositAccount['fetch'] extends (...args: any) => Promise<infer T> ? T : never>, PublicKey[]]
+    > {
+        //console.log("get coupons")
+        if (!this.program) {
+            throw new Error("❌ Program client not initialized!")
+        }
+        //fetch coupons
+        let depositsData = await this.program.account.depositAccount.all([
+            {
+                memcmp: {
+                    offset: 8 + 20,
+                    bytes: user.toBase58()
+                }
+            }
+        ]);
+        // Map ProgramAccount objects to their account data
+        const accounts = depositsData.map(deposit => deposit.account);
+        const publicKeys = depositsData.map(deposit => deposit.publicKey);
+        return [accounts, publicKeys];
     }
 
     async getWithdrawableAmount(
