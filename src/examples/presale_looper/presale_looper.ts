@@ -70,10 +70,17 @@ async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
         let coupon = allCoupons[0][i]
         let couponKey = allCoupons[1][i]
         let marketAddress = coupon.marketAddress
-        console.log("Claiming coupon for market:", marketAddress.toBase58())
         let marketState = await client.getMarket(marketAddress)
-        let claimPresaleRes = await client.claimPresale([couponKey], marketAddress, marketState)
-        console.log("Claim presale tx:", claimPresaleRes.txid)
+        console.log("Claiming coupon for market:", marketAddress.toBase58())
+
+        if (Date.now() / 1000 > marketState.launchDate.toNumber()) {
+            
+            let claimPresaleRes = await client.claimPresale([couponKey], marketAddress, marketState)
+            console.log("Claim presale tx:", claimPresaleRes.txid)
+        } else {
+            console.log("Market not launched yet")
+        }
+        
     }
 
     //get all base tokens
@@ -86,7 +93,7 @@ async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
 
         console.log("Got token account:",  allBaseTokens.value[i].pubkey.toBase58())
         console.log("Balance:", baseToken.amount, "Mint:", baseToken.mint.toBase58())
-        if (baseToken.mint.toBase58() != quote.toBase58()) {
+        if (baseToken.mint.toBase58() != quote.toBase58() && baseToken.amount > BigInt(0)) {
             const marketStateRes = await fetch(`https://devnet.api.takeoff.lol/marketState?baseMintAddress=${baseToken.mint.toBase58()}`);
             const marketState = await marketStateRes.json()
             let marketStateStruct = await client.getMarket(new PublicKey(marketState.address))
@@ -107,7 +114,40 @@ async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
 
 
     //get all deposit accounts
-    
+    let depositAccounts = await client.getAllUserDepositAccounts(client.wallet.publicKey)
+    console.log(`Found ${depositAccounts[0].length} deposit accounts.`)
+    for (let i = 0; i < depositAccounts[0].length; i++) {
+        let depositAccount = depositAccounts[0][i]
+        //console.log("Deposit account:", depositAccount)
+        let marketAddress = depositAccount.marketStateAddress
+        console.log("Market address:", marketAddress)
+        let marketState = await client.getMarket(marketAddress)
+        //console.log("Market state:", marketState)
+        //update floor
+        //update and boost floor
+        let newFloor = await client.getUpdateFloorQuantity(marketState)
+        let updateAndBoostFloorRes = await client.updateAndBoostFloor(new anchor.BN(newFloor.toString()), marketAddress, marketState)
+        console.log("Update and boost floor tx:", updateAndBoostFloorRes.txid)
+
+        let borrowableAmount = await client.getBorrowableAmount(depositAccount, marketState);
+        console.log("Max borrowing Max bidding market:", marketAddress.toBase58())
+        console.log("Borrowable amount:", borrowableAmount.div(10 ** marketState.quoteDecimals).toString())
+        let associatedQuoteAddress = await getAssociatedTokenAddress(
+            quote,
+            client.wallet.publicKey
+        );
+        let borrowRes = await client.borrow(new anchor.BN(borrowableAmount.floor().toString()), marketAddress, marketState, associatedQuoteAddress)
+        console.log("Borrow tx:", borrowRes.txid)
+        let buyAmt = borrowableAmount.floor().mul(0.99)
+        console.log("Buying for", buyAmt.div(10 ** marketState.quoteDecimals).toString())
+        let buyInfo = await client.buyInfo(new Decimal(buyAmt.toString()), marketState)
+        console.log("Expected amount to receive:", buyInfo.out.toString())
+        console.log(`Expected new price: ${buyInfo.newPrice.toString()}. Expected price impact: ${buyInfo.priceIncrease.toString()}`)
+        let maxCost = new anchor.BN(buyAmt.mul(1.01).floor().toString())
+        console.log("Max cost:", new Decimal(maxCost.toString()).div(10 ** marketState.quoteDecimals).toString())
+        let buyRes  = await client.buy(new anchor.BN(buyInfo.out.mul(10 ** marketState.baseDecimals).toString()), maxCost, marketAddress, marketState, associatedQuoteAddress)
+        console.log("Buy tx:", buyRes.txid)
+    }
     //update floors
     //for each deposit account, max borrow, max buy base token
 
@@ -139,7 +179,15 @@ async function main() {
         }
         const client = new LimitlessSDK(wallet, connection)
         await client.init()
-        await runPresaleLooper(client, new PublicKey(quote))
+        while (true) {
+            try {
+                await runPresaleLooper(client, new PublicKey(quote))
+            } catch (error) {
+                
+            }
+            await new Promise(r => setTimeout(r, 1000));
+
+        }
 
         // Schedule periodic scans (every 15 minutes)
 

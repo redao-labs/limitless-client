@@ -15,6 +15,7 @@ marketCreator.json
 openai-api-key.json
 showcase.json
 presaleLooper.json
+volumizer.json
 markets
 # Editor directories and files
 .vscode/*

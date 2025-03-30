@@ -637,7 +637,6 @@ export class LimitlessSDK {
                 this.wallet.publicKey,
                 marketState.baseMintAddress
             )
-            console.log("pushed base xie")
             instructions.push(baseIns)
         }
         const ix = await buyIx(
@@ -1099,7 +1098,7 @@ export class LimitlessSDK {
         let depositsData = await this.program.account.depositAccount.all([
             {
                 memcmp: {
-                    offset: 8 + 20,
+                    offset: 8,
                     bytes: user.toBase58()
                 }
             }

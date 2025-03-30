@@ -26,7 +26,10 @@ async function runCreator(client: LimitlessSDK, connectionUmi: string, quote: Pu
     }
 
     const folders = fs.readdirSync(marketDir);
+    let index = 0;
     for (const folder of folders) {
+        index++;
+        if (index > 10) break;
         const folderPath = path.join(marketDir, folder);
         if (!fs.lstatSync(folderPath).isDirectory()) continue;
 
@@ -61,8 +64,11 @@ async function runCreator(client: LimitlessSDK, connectionUmi: string, quote: Pu
         // Proceed with uploading coverBuffer, logoBuffer, and metadata using client functions
         console.log(`Processing market deployment for folder ${folder}`);
         
+        console.log("Uploading cover")
         let coverUri = await client.uploadImage(coverBuffer, "cover", "png", "image/png", connectionUmi)
+        console.log("Uploading logo")
         let logoUri = await client.uploadImage(logoBuffer, "logo", "png", "image/png", connectionUmi)
+        console.log("Uploading metadata")
         let metadataUri = await client.uploadMetadata(
             connectionUmi,
             data.coinName,
@@ -104,7 +110,6 @@ async function runCreator(client: LimitlessSDK, connectionUmi: string, quote: Pu
         data.marketAddress = market.marketStateAddress.toBase58()
         data.metadataLink = metadataUri;
         fs.writeFileSync(jsonFile, JSON.stringify(data, null, 2), 'utf8');
-        break
         await new Promise(r => setTimeout(r, 6000));
     }
     //TODO, claim all fees
