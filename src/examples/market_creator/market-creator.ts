@@ -29,7 +29,7 @@ async function runCreator(client: LimitlessSDK, connectionUmi: string, quote: Pu
     let index = 0;
     for (const folder of folders) {
         index++;
-        if (index > 10) break;
+        if (index > 30) break;
         const folderPath = path.join(marketDir, folder);
         if (!fs.lstatSync(folderPath).isDirectory()) continue;
 

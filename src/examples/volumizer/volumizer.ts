@@ -21,6 +21,11 @@ import { getMarket } from '../../index_old';
 import Decimal from 'decimal.js';
 import { dir } from 'console';
 
+//volumizer todo
+//track each market address probability
+//if tere is no base balance then bid it up
+const marketProbabilities = new Map<string, any>();
+
 let probability = 1
 async function runVolumizer(client: LimitlessSDK, quote: PublicKey) {
 
@@ -38,7 +43,7 @@ async function runVolumizer(client: LimitlessSDK, quote: PublicKey) {
         for (const market of markets) {
             if (!market.address || !market.launchdate) continue;
             const marketLaunchDate = new Date(market.launchdate);
-            const cutoffDate = new Date('2025-03-29T00:00:00.000Z');
+            const cutoffDate = new Date('2025-03-31T00:00:00.000Z');
             if (marketLaunchDate <= cutoffDate) continue;
             if (!uniqueMarkets.has(market.address)) {
                 uniqueMarkets.set(market.address, market);
@@ -55,24 +60,42 @@ async function runVolumizer(client: LimitlessSDK, quote: PublicKey) {
         client.wallet.publicKey
     );
     for (const market of uniqueMarkets.values()) {
+        console.log(market)
         console.log(`Market address: ${market.address}, Price: ${market.price}`);
         let marketAddress = new PublicKey(market.address)
         let marketState = await client.getMarket(marketAddress)
         let direction = getRandomNumberInRange(0, 100)
         try {
-            probability += 0.05
+            if (!marketProbabilities.has(market.address)) {
+                marketProbabilities.set(market.address, 1)
+            }
+            let probs = marketProbabilities.get(market.address)
+            probs += 0.01
             if (probability > 99) {
-                probability = 1
+                probs = 1
             }
             let switchup = getRandomNumberInRange(0, 100)
             if (switchup < 1) {
-                probability = 1
+                probs = 1
             }
             if (switchup > 99) {
-                probability = 70
+                probs = 70
             }
-            console.log("PROBABILITY", probability)
-            if (direction > probability) {
+            marketProbabilities.set(market.address, probs)
+            if (market.floorratio < 0.2) {
+                probs = 80
+            }
+            if (market.floorratio < 0.05) {
+                probs = 95
+            }
+            if (market.floorratio > 0.8) {
+                probs = 20
+            }
+            if (market.floorratio > 0.95) {
+                probs = 5
+            }
+            console.log("PROBABILITY", probs)
+            if (direction > probs) {
 
                 let maxQuote = await getSize(new Decimal(market.price))
                 let costNorm = getRandomNumberInRange(1, maxQuote.toNumber())
@@ -179,7 +202,7 @@ async function main() {
             } catch (error) {
 
             }
-            await new Promise(r => setTimeout(r, 200));
+            // await new Promise(r => setTimeout(r, 200));
 
         }
 

@@ -112,48 +112,6 @@ async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
     }
 
 
-
-    //get all deposit accounts
-    let depositAccounts = await client.getAllUserDepositAccounts(client.wallet.publicKey)
-    console.log(`Found ${depositAccounts[0].length} deposit accounts.`)
-    for (let i = 0; i < depositAccounts[0].length; i++) {
-        let depositAccount = depositAccounts[0][i]
-        //console.log("Deposit account:", depositAccount)
-        let marketAddress = depositAccount.marketStateAddress
-        console.log("Market address:", marketAddress)
-        let marketState = await client.getMarket(marketAddress)
-        //console.log("Market state:", marketState)
-        //update floor
-        //update and boost floor
-        let newFloor = await client.getUpdateFloorQuantity(marketState)
-        let updateAndBoostFloorRes = await client.updateAndBoostFloor(new anchor.BN(newFloor.toString()), marketAddress, marketState)
-        console.log("Update and boost floor tx:", updateAndBoostFloorRes.txid)
-
-        let borrowableAmount = await client.getBorrowableAmount(depositAccount, marketState);
-        if (borrowableAmount.greaterThan(0)) {
-            console.log("Max borrowing Max bidding market:", marketAddress.toBase58())
-            console.log("Borrowable amount:", borrowableAmount.div(10 ** marketState.quoteDecimals).toString())
-            let associatedQuoteAddress = await getAssociatedTokenAddress(
-                quote,
-                client.wallet.publicKey
-            );
-            let borrowRes = await client.borrow(new anchor.BN(borrowableAmount.floor().toString()), marketAddress, marketState, associatedQuoteAddress)
-            console.log("Borrow tx:", borrowRes.txid)
-            let buyAmt = borrowableAmount.floor().mul(0.99)
-            console.log("Buying for", buyAmt.div(10 ** marketState.quoteDecimals).toString())
-            let buyInfo = await client.buyInfo(new Decimal(buyAmt.toString()), marketState)
-            console.log("Expected amount to receive:", buyInfo.out.toString())
-            console.log(`Expected new price: ${buyInfo.newPrice.toString()}. Expected price impact: ${buyInfo.priceIncrease.toString()}`)
-            let maxCost = new anchor.BN(buyAmt.mul(1.01).floor().toString())
-            console.log("Max cost:", new Decimal(maxCost.toString()).div(10 ** marketState.quoteDecimals).toString())
-            let buyRes  = await client.buy(new anchor.BN(buyInfo.out.mul(10 ** marketState.baseDecimals).toString()), maxCost, marketAddress, marketState, associatedQuoteAddress)
-            console.log("Buy tx:", buyRes.txid)
-        }
-        
-    }
-    //update floors
-    //for each deposit account, max borrow, max buy base token
-
 }
 main()
 async function main() {
@@ -161,7 +119,7 @@ async function main() {
 
         //load keypair, marketCreator.json
         //check mainnet for keypair is funded
-        let keypair = await getSolanaKeypair("presaleLooper")
+        let keypair = await getSolanaKeypair("presaleScalper")
         const connection = new anchor.web3.Connection("https://rpcdevnet.redao.id/a1fb2ed4-f5df-4688-982b-4fad1944ef0e/");
         const wallet = new anchor.Wallet(keypair);
         const lamportsBalance = await connection.getBalance(wallet.publicKey) / 10 ** 9;

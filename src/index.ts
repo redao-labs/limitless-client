@@ -27,7 +27,8 @@ import {
     floorProceedsWPrice,
     findRoot,
     floorProceeds,
-    lookupLimitDown
+    lookupLimitDown,
+    lookupLimitDownWithOutput
 } from './ix-builder';
 import {
     Connection,
@@ -83,7 +84,6 @@ export class LimitlessSDK {
             throw error;
         }
     }
-
     async trackTxProgress(
         txid: string,
         blockhash: any,
@@ -132,7 +132,6 @@ export class LimitlessSDK {
         }
         return confBool;
     }
-
     async buildAndSendTransaction(
         instructions: TransactionInstruction[],
         callback?: TxProgressCallback
@@ -169,7 +168,6 @@ export class LimitlessSDK {
             throw error;
         }
     }
-
     //create metadata
     async uploadImage(
         fileBuff: Buffer,
@@ -219,7 +217,6 @@ export class LimitlessSDK {
 
         throw new Error("No image file provided");
     };
-
     async uploadMetadata(
         rpcUrl: string,
         name: string,
@@ -651,6 +648,26 @@ export class LimitlessSDK {
         );
         instructions.push(ix)
         return await this.buildAndSendTransaction(instructions, callback);
+    }
+    async sellWithOutputInfo(
+        proceeds: Decimal,
+        marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never
+    ): Promise<Decimal> {
+        let proceedsProtocolFee = proceeds.sub(proceeds.mul(new Decimal(1).sub(new Decimal(0.001))))
+        let proceedsSellFee = proceeds.sub(proceeds.mul(new Decimal(1).sub(new Decimal(marketState.sellFee).div(10000))))
+        proceeds = proceeds.add(proceedsProtocolFee.add(proceedsSellFee))
+        let newCqd = (await lookupLimitDownWithOutput(
+          proceeds,
+          new Decimal(1.5), //todo get from state
+          new Decimal(marketState.cqd.toString()),
+          new Decimal(marketState.quoteDecimals + marketState.scalerDecimals),
+          new Decimal(marketState.divisorPow),
+          new Decimal(marketState.pow1),
+          new Decimal(marketState.pow2)
+        )).floor()
+        let cqdDiff = new Decimal(marketState.cqd.toString()).sub(newCqd).mul(0.99975426466)
+        let cqdDiffNorm = cqdDiff.div(Math.pow(10, marketState.baseDecimals))
+        return cqdDiffNorm
     }
     async sellInfo(
         quantity: Decimal,

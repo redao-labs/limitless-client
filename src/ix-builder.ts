@@ -852,7 +852,7 @@ export async function lookupLimitDownWithOutput(
 function solveForXDown(a: Decimal, k: Decimal, z: Decimal, divisorPow: Decimal, pow1: Decimal, pow2: Decimal): Decimal {
     // Initial guess (slightly less than z)
     let x = z.minus(new Decimal('1e6'));
-    const tolerance = new Decimal('1e-6');
+    const tolerance = new Decimal('1e-3');
     const maxIterations = 10000;
 
     for (let i = 0; i < maxIterations; i++) {
