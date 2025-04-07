@@ -1,176 +1,218 @@
-//get live presales, if no coupons buy for 100 quote tokens
-//todo, index all coupons in account state scanner + listener
-//get all coupons, claim coupons
-//todo, scan all deposit accounts to index them
-//get all owned tokens
-//todo, add mint -> address search to backend
-//get market for each token, get deposit account 
-//max deposit into deposit account
-//max borrow
-//buy with borrowed funds
-//max deposit
-
-// import { Keypair } from "@solana/web3.js";
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync } from 'fs';
 import fs from 'fs';
 import base58, * as bs58 from "bs58";
 import * as anchor from "@coral-xyz/anchor";
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { LimitlessSDK } from '../..';
-import path from 'path';
-import { AccountLayout, getAccount, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { getMarket } from '../../index_old';
+import { getAccount, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import Decimal from 'decimal.js';
+import path from 'path';
 
+// Global variables and helpers
+let uniqueMarkets = new Map<string, any>();
 
-async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
+async function refreshUniqueMarkets(quote: PublicKey) {
+    const newUniqueMarkets = new Map<string, any>();
+    let skip = 0;
+    while (true) {
+        const res = await fetch(`https://devnet.api.takeoff.lol/newlyLaunchedMarkets?quoteMint=${quote.toBase58()}&orderBy=presalequote&skip=${skip}&limit=50`);
+        const markets = await res.json();
+        if (!Array.isArray(markets) || markets.length === 0) break;
+        for (const market of markets) {
+            if (!market.address || !market.launchdate) continue;
+            const marketLaunchDate = new Date(market.launchdate);
+            const cutoffDate = new Date('2025-04-04T00:00:00.000Z');
+            if (marketLaunchDate <= cutoffDate) continue;
+            newUniqueMarkets.set(market.address, market);
+        }
+        skip += markets.length;
+    }
+    uniqueMarkets = newUniqueMarkets;
+    console.log("Updated unique markets count:", uniqueMarkets.size);
+}
 
-    //get all active presales and buy if no coupons
-    const res = await fetch(`https://devnet.api.takeoff.lol/livePresales?quoteMint=${quote}&orderBy=presalequote&skip=${0}`);
-    const data = await res.json();
-    
-    console.log(`Fetched ${data.length} active presale markets!`)
-    for (let i = 0; i < data.length; i++) {
-        let presaleMkt = data[i]
-        //check if we got coupons
-        let marketAddress = await new PublicKey(presaleMkt.address)
-        let marketState = await client.getMarket(marketAddress)
-        let coupons = await client.getCoupons(marketAddress, client.wallet.publicKey)
-        console.log("Checking market:", marketAddress.toBase58())
-        if (coupons[0].length == 0) {
-            console.log("No coupons detected, buying!!")
-            let associatedQuoteAddress = await getAssociatedTokenAddress(
-                quote,
-                client.wallet.publicKey
-            );
-            //no coupons, lets buy some
-            let cost = new Decimal(100).mul(10 ** marketState.quoteDecimals);
-            //get buyInfo - price impact, new price, maxCost
-            let buyPresaleInfo = await client.presaleBuyInfo(cost, marketState)
-            console.log("Expected amount that will be added to the presale pool:", buyPresaleInfo.out.div(10 ** marketState.baseDecimals).toString())
-            console.log(`Expected new price: ${buyPresaleInfo.newPrice.toString()}. Expected price impact: ${buyPresaleInfo.priceIncrease.toString()}%`)
-            console.log(`Expected coupon share of pool: ${buyPresaleInfo.presaleInfo.baseSharePercent}%. Expected base tokens received: ${buyPresaleInfo.presaleInfo.baseShare.toString()}. Average price: ${buyPresaleInfo.presaleInfo.avgPrice.toString()}`)
-            //todo expected share this coupons will have
-            let presaleBuyRes = await client.presaleBuy(
+function getRandomNumberInRange(min: number, max: number): number {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+async function getSize(price: Decimal): Promise<Decimal> {
+    let scale = new Decimal(0.01).div(price);
+    let size = new Decimal(100000).div(scale);
+    return size;
+}
+
+// Presale Operations: purchase presales and claim coupons.
+async function runPresaleOperations(client: LimitlessSDK, quote: PublicKey) {
+    // Fetch live presales
+    const res = await fetch(`https://devnet.api.takeoff.lol/livePresales?quoteMint=${quote.toBase58()}&orderBy=presalequote&skip=0`);
+    const presaleData = await res.json();
+    console.log(`Fetched ${presaleData.length} active presale markets!`);
+    for (const presaleMkt of presaleData) {
+        const marketAddress = new PublicKey(presaleMkt.address);
+        const marketState = await client.getMarket(marketAddress);
+        const coupons = await client.getCoupons(marketAddress, client.wallet.publicKey);
+        console.log("Checking market:", marketAddress.toBase58());
+        if (coupons[0].length === 0) {
+            console.log("No coupons detected, buying presale!");
+            const associatedQuoteAddress = await getAssociatedTokenAddress(quote, client.wallet.publicKey);
+            const cost = new Decimal(100).mul(10 ** marketState.quoteDecimals);
+            const buyPresaleInfo = await client.presaleBuyInfo(cost, marketState);
+            console.log("Expected pool addition:", buyPresaleInfo.out.div(10 ** marketState.baseDecimals).toString());
+            console.log(`New price: ${buyPresaleInfo.newPrice.toString()}, Price impact: ${buyPresaleInfo.priceIncrease.toString()}%`);
+            await client.presaleBuy(
                 new anchor.BN(buyPresaleInfo.out.toString()),
                 associatedQuoteAddress,
                 marketAddress,
                 marketState
-            )
-            console.log("Presale buy tx:", presaleBuyRes.txid)
+            );
         } else {
-            console.log("Already have coupons for this market.")
+            console.log("Already have coupons for this market.");
         }
     }
-
-    //get all coupons
-    let allCoupons = await client.getAllUserCoupons(client.wallet.publicKey)
-    console.log(`Fetched ${allCoupons[0].length} coupons`)
-    for (let i = 0; i < allCoupons[0].length; i++) {
-        let coupon = allCoupons[0][i]
-        let couponKey = allCoupons[1][i]
-        let marketAddress = coupon.marketAddress
-        let marketState = await client.getMarket(marketAddress)
-        console.log("Claiming coupon for market:", marketAddress.toBase58())
-
+    // Claim coupons for matured presales
+    const allCouponsData = await client.getAllUserCoupons(client.wallet.publicKey);
+    console.log(`Fetched ${allCouponsData[0].length} coupons`);
+    for (let i = 0; i < allCouponsData[0].length; i++) {
+        const coupon = allCouponsData[0][i];
+        const couponKey = allCouponsData[1][i];
+        const marketAddress = coupon.marketAddress;
+        const marketState = await client.getMarket(marketAddress);
+        console.log("Claiming coupon for market:", marketAddress.toBase58());
         if (Date.now() / 1000 > marketState.launchDate.toNumber()) {
-            
-            let claimPresaleRes = await client.claimPresale([couponKey], marketAddress, marketState)
-            console.log("Claim presale tx:", claimPresaleRes.txid)
+            const claimRes = await client.claimPresale([couponKey], marketAddress, marketState);
+            console.log("Claim presale tx:", claimRes.txid);
         } else {
-            console.log("Market not launched yet")
+            console.log("Market not launched yet");
         }
-        
     }
-
-    //get all base tokens
-    //for each base token, create and deposit into deposit account
-    let allBaseTokens = await client.connection.getTokenAccountsByOwner(client.wallet.publicKey, {programId: TOKEN_PROGRAM_ID})
-    console.log(`Found ${allBaseTokens.value.length} token accounts`)
-    for (let i = 0; i < allBaseTokens.value.length; i++) {
-        let baseTokenBuff = allBaseTokens.value[i].account.data
-        const baseToken = AccountLayout.decode(baseTokenBuff);
-
-        console.log("Got token account:",  allBaseTokens.value[i].pubkey.toBase58())
-        console.log("Balance:", baseToken.amount, "Mint:", baseToken.mint.toBase58())
-        if (baseToken.mint.toBase58() != quote.toBase58() && baseToken.amount > BigInt(0)) {
-            const marketStateRes = await fetch(`https://devnet.api.takeoff.lol/marketState?baseMintAddress=${baseToken.mint.toBase58()}`);
-            const marketState = await marketStateRes.json()
-            let marketStateStruct = await client.getMarket(new PublicKey(marketState.address))
-            console.log("Market address:", marketState.address)
-            //if there is an error the account has already been created
-            let createDepositAccountRes = await client.createDepositAccount(new PublicKey(marketState.address))
-            console.log("Create deposit account res:", createDepositAccountRes.txid)
-            //let depositAccount = await client.getDepositAccount(new PublicKey(marketState.address))
-            let depositRes = await client.deposit(new anchor.BN(baseToken.amount.toString()), new PublicKey(marketState.address), marketStateStruct, allBaseTokens.value[i].pubkey)
-            console.log("Deposit tx:", depositRes.txid)
-        }
-        //get market address for the mint
-
-        
-        //create deposit account, deposit into deposit account
-    }
-
-
 }
-main()
+
+// Trading Operations: buy if floor ratio > 0.9, sell if floor ratio < 0.1
+async function runTradingOperations(client: LimitlessSDK, quote: PublicKey) {
+    const associatedQuoteAddress = await getAssociatedTokenAddress(quote, client.wallet.publicKey);
+    for (const market of uniqueMarkets.values()) {
+        try {
+            let marketAddress = new PublicKey(market.address);
+            let marketState = await client.getMarket(marketAddress);
+            console.log(`Market ${market.address} - Floor ratio: ${market.floorratio}`);
+            let bid = false
+            try {
+                const baseTokenAddress = await getAssociatedTokenAddress(marketState.baseMintAddress, client.wallet.publicKey);
+                const baseTokenAcc = await getAccount(client.connection, baseTokenAddress);
+            } catch(e) {
+                bid = true
+            }
+            if (market.floorratio > 0.4 || bid) {
+                // Buy logic
+                const maxQuote = await getSize(new Decimal(market.price));
+                const costNorm = getRandomNumberInRange(1, maxQuote.toNumber());
+                console.log("Buying for:", costNorm);
+                const buyInfo = await client.buyInfo(new Decimal(costNorm * (10 ** marketState.quoteDecimals)), marketState);
+                const maxCost = new anchor.BN(new Decimal(costNorm * (10 ** marketState.quoteDecimals)).mul(1.1).floor().toString());
+                client.buy(new anchor.BN(buyInfo.out.mul(10 ** marketState.baseDecimals).toString()), maxCost, marketAddress, marketState, associatedQuoteAddress);
+                console.log("Buy order placed.");
+            } else if (market.floorratio < 0.1) {
+                // Sell logic
+                const baseTokenAddress = await getAssociatedTokenAddress(marketState.baseMintAddress, client.wallet.publicKey);
+                try {
+                    const baseTokenAcc = await getAccount(client.connection, baseTokenAddress);
+                    let sellProceedsMax = await getSize(new Decimal(market.price));
+                    const sellQProceeds = getRandomNumberInRange(1, sellProceedsMax.toNumber());
+                    const sellQNormTemp = await client.sellWithOutputInfo(new Decimal(sellQProceeds).mul(10 ** marketState.baseDecimals), marketState);
+                    let sellQ = sellQNormTemp.mul(10 ** marketState.baseDecimals);
+                    if (sellQ.greaterThan(new Decimal(baseTokenAcc.amount.toString()))) {
+                        sellQ = new Decimal(baseTokenAcc.amount.toString());
+                    }
+                    if (sellQ.greaterThan(1)) {
+                        const sellInfo = await client.sellInfo(sellQ.floor(), marketState);
+                        let minProceeds = new Decimal(sellInfo.outAmm.mul(10 ** marketState.quoteDecimals))
+                            .mul(new Decimal(1).minus(new Decimal(0.1).div(100))).floor();
+                        client.sell(new anchor.BN(sellInfo.sellAmmQ.floor().toString()), new anchor.BN(minProceeds.floor().toString()), marketAddress, marketState, baseTokenAddress);
+                        console.log("Sell order placed.");
+                        if (sellInfo.sellFloorQ.greaterThan(0)) {
+                            const minProceedsFloor = new Decimal(sellInfo.outFloor.mul(10 ** marketState.quoteDecimals))
+                                .mul(new Decimal(1).minus(new Decimal(0.01).div(100))).floor();
+                            client.sellFloor(new anchor.BN(sellInfo.sellFloorQ.toString()), new anchor.BN(minProceedsFloor.floor().toString()), marketAddress, marketState, baseTokenAddress);
+                            console.log("Sell floor order placed.");
+                        }
+                    }
+                } catch (error) {
+
+                }
+
+            }
+        } catch (error) {
+            console.log("Trading operation error:", error);
+        }
+    }
+}
+
 async function main() {
     try {
-
-        //load keypair, marketCreator.json
-        //check mainnet for keypair is funded
-        let keypair = await getSolanaKeypair("presaleScalper")
+        const keypair = await getSolanaKeypair("presaleScaler");
         const connection = new anchor.web3.Connection("https://rpcdevnet.redao.id/a1fb2ed4-f5df-4688-982b-4fad1944ef0e/");
         const wallet = new anchor.Wallet(keypair);
         const lamportsBalance = await connection.getBalance(wallet.publicKey) / 10 ** 9;
-        console.log("Wallet address: ", keypair.publicKey.toBase58())
-        console.log("Wallet balance: ", lamportsBalance)
-        //todo load quote from json?
-        let quote = "GegvtgCpWDHRECtokd5gTdWKGqpVWdDexCwBjGEMwSYx"
+        console.log("Wallet address:", keypair.publicKey.toBase58());
+        console.log("Wallet balance:", lamportsBalance);
+        let quote = "GegvtgCpWDHRECtokd5gTdWKGqpVWdDexCwBjGEMwSYx";
         if (lamportsBalance < 0.1) {
-            console.log("Wallet balance too low!")
-            return
+            console.log("Wallet balance too low!");
+            return;
         }
-        let quoteTokenAddress = await getAssociatedTokenAddress(new PublicKey(quote), wallet.publicKey)
-        let quoteBalance = await getAccount(connection, quoteTokenAddress)
-        console.log("Quote balance:", quoteBalance.amount)
+        const quoteTokenAddress = await getAssociatedTokenAddress(new PublicKey(quote), wallet.publicKey);
+        const quoteBalance = await getAccount(connection, quoteTokenAddress);
+        console.log("Quote balance:", quoteBalance.amount);
         if (quoteBalance.amount / BigInt(10 ** 6) < 100) {
-            console.log("Quote balance too low!")
-            return
+            console.log("Quote balance too low!");
+            return;
         }
-        const client = new LimitlessSDK(wallet, connection)
-        await client.init()
-        while (true) {
-            try {
-                await runPresaleLooper(client, new PublicKey(quote))
-            } catch (error) {
-                
+        const client = new LimitlessSDK(wallet, connection);
+        await client.init();
+
+        // Start refreshing unique markets every 10 seconds.
+        await refreshUniqueMarkets(new PublicKey(quote));
+        setInterval(() => refreshUniqueMarkets(new PublicKey(quote)).catch(console.error), 10000);
+
+        // Run presale and trading operations asynchronously.
+        (async function presaleLoop() {
+            while (true) {
+                try {
+                    await runPresaleOperations(client, new PublicKey(quote));
+                } catch (error) {
+                    console.error("Presale error:", error);
+                }
+                await new Promise(r => setTimeout(r, 5000));
             }
-            await new Promise(r => setTimeout(r, 1000));
+        })();
 
-        }
-
-        // Schedule periodic scans (every 15 minutes)
-
+        (async function tradingLoop() {
+            while (true) {
+                try {
+                    await runTradingOperations(client, new PublicKey(quote));
+                } catch (error) {
+                    console.error("Trading error:", error);
+                }
+                await new Promise(r => setTimeout(r, 200));
+            }
+        })();
     } catch (error) {
-        console.error("Error in main function:", error);
+        console.error("Error in main:", error);
     }
 }
 
+main();
+
 export async function getSolanaKeypair(walletName: string): Promise<Keypair> {
     try {
-        // try to read the keypair file
         const data = fs.readFileSync(`${walletName}.json`, 'utf8');
-        console.log(`${walletName}.json found`)
+        console.log(`${walletName}.json found`);
         const dataJson = JSON.parse(data);
-        let kp = Keypair.fromSecretKey(bs58.decode(dataJson.secretKey));
-        return kp
+        return Keypair.fromSecretKey(bs58.decode(dataJson.secretKey));
     } catch (err) {
-        // if the file doesn't exist, create a new keypair
         console.log(`${walletName}.json not found, generating`);
         const keypair = Keypair.generate();
-        var b58 = bs58.encode(keypair.secretKey)
-        fs.writeFileSync(`${walletName}.json`, JSON.stringify({ secretKey: b58 }), 'utf8');
+        fs.writeFileSync(`${walletName}.json`, JSON.stringify({ secretKey: bs58.encode(keypair.secretKey) }), 'utf8');
         return keypair;
     }
 }

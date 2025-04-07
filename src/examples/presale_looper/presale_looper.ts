@@ -113,7 +113,7 @@ async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
 
 
 
-    //get all deposit accounts
+    //get all deposit accounts //TODO, close deposit account function
     let depositAccounts = await client.getAllUserDepositAccounts(client.wallet.publicKey)
     console.log(`Found ${depositAccounts[0].length} deposit accounts.`)
     for (let i = 0; i < depositAccounts[0].length; i++) {
@@ -125,9 +125,9 @@ async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
         //console.log("Market state:", marketState)
         //update floor
         //update and boost floor
-        let newFloor = await client.getUpdateFloorQuantity(marketState)
-        let updateAndBoostFloorRes = await client.updateAndBoostFloor(new anchor.BN(newFloor.toString()), marketAddress, marketState)
-        console.log("Update and boost floor tx:", updateAndBoostFloorRes.txid)
+        // let newFloor = await client.getUpdateFloorQuantity(marketState)
+        // let updateAndBoostFloorRes = await client.updateAndBoostFloor(new anchor.BN(newFloor.toString()), marketAddress, marketState)
+        // console.log("Update and boost floor tx:", updateAndBoostFloorRes.txid)
 
         let borrowableAmount = await client.getBorrowableAmount(depositAccount, marketState);
         if (borrowableAmount.greaterThan(0)) {
@@ -144,7 +144,7 @@ async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
             let buyInfo = await client.buyInfo(new Decimal(buyAmt.toString()), marketState)
             console.log("Expected amount to receive:", buyInfo.out.toString())
             console.log(`Expected new price: ${buyInfo.newPrice.toString()}. Expected price impact: ${buyInfo.priceIncrease.toString()}`)
-            let maxCost = new anchor.BN(buyAmt.mul(1.01).floor().toString())
+            let maxCost = new anchor.BN(buyAmt.mul(1.1).floor().toString())
             console.log("Max cost:", new Decimal(maxCost.toString()).div(10 ** marketState.quoteDecimals).toString())
             let buyRes  = await client.buy(new anchor.BN(buyInfo.out.mul(10 ** marketState.baseDecimals).toString()), maxCost, marketAddress, marketState, associatedQuoteAddress)
             console.log("Buy tx:", buyRes.txid)
@@ -188,7 +188,7 @@ async function main() {
             } catch (error) {
                 
             }
-            await new Promise(r => setTimeout(r, 1000));
+            // await new Promise(r => setTimeout(r, 1000));
 
         }
 

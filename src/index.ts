@@ -28,7 +28,8 @@ import {
     findRoot,
     floorProceeds,
     lookupLimitDown,
-    lookupLimitDownWithOutput
+    lookupLimitDownWithOutput,
+    closeDepositAccountIx
 } from './ix-builder';
 import {
     Connection,
@@ -686,7 +687,7 @@ export class LimitlessSDK {
                 floorQ,
                 new Decimal(marketState.gradient.toString()),
                 new Decimal(marketState.divisorPow),
-                marketState.offset,
+                new Decimal(marketState.offset.toString()),
                 marketState.quoteDecimals + marketState.scalerDecimals
             )
         }
@@ -701,7 +702,6 @@ export class LimitlessSDK {
         let totalQuoteOut = quoteOut.mul(new Decimal(1).sub(new Decimal(0.001)).sub(new Decimal(marketState.sellFee).div(10000))).mul(new Decimal(1).div(0.999989577))
         let outputVal = totalQuoteOut.div(new Decimal(10).pow(marketState.quoteDecimals + marketState.scalerDecimals + marketState.quoteDecimals))
         if (floorQ.greaterThan(0)) {
-            console.log("floorQ, floorout", floorQ.toString(), floorQuoteOut.toString())
             outputVal = outputVal.add(floorQuoteOut.div(10 ** marketState.quoteDecimals))
             if (new Decimal(marketState.highestFloorQuantity.toString()).greaterThan(marketState.cqd.toString())) {
                 outputVal = floorQuoteOut.div(10 ** marketState.quoteDecimals)
@@ -728,6 +728,14 @@ export class LimitlessSDK {
         let totalOut = outputVal
         let ammOut = totalQuoteOut.div(new Decimal(10).pow(marketState.quoteDecimals + marketState.scalerDecimals + marketState.quoteDecimals))
         let floorOut = floorQuoteOut.div(10 ** marketState.quoteDecimals)
+        if (floorQ.equals(quantity)) {
+            sellAmmQ = new Decimal(0)
+            sellFloorQ = floorQ
+            totalOut = outputVal
+            ammOut = new Decimal(0)
+            newPrice = oldPrice
+            priceIncrease = new Decimal(0)
+        }
         return {
             out: totalOut,
             outAmm: ammOut,
@@ -812,7 +820,7 @@ export class LimitlessSDK {
             minProceeds,
             this.wallet.publicKey,
             userBaseToken,
-            userQuoteToken,
+            associatedQuoteAddress,
             market,
             marketState,
             this.program,
@@ -826,6 +834,21 @@ export class LimitlessSDK {
         callback?: TxProgressCallback
     ): Promise<{ txid: string; confirmed: boolean }> {
         const ix = await createDepositAccountIx(
+            this.wallet.publicKey,
+            market,
+            this.program
+        );
+        const instructions = [
+            ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }),
+            ix
+        ];
+        return await this.buildAndSendTransaction(instructions, callback);
+    }
+    async closeDepositAccount(
+        market: PublicKey,
+        callback?: TxProgressCallback
+    ): Promise<{ txid: string; confirmed: boolean }> {
+        const ix = await closeDepositAccountIx(
             this.wallet.publicKey,
             market,
             this.program

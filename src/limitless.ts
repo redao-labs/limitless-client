@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/limitless.json`.
  */
 export type Limitless = {
-  "address": "z9P826HFdY5NPMgjgv4eubKFuxyJcjkRfdJuekZoaR6",
+  "address": "2VPmfzaJhVR9DpJJJwfW4sXGbAPRdcQjRhswjmS5Fx8D",
   "metadata": {
     "name": "limitless",
     "version": "0.1.0",
@@ -1316,6 +1316,84 @@ export type Limitless = {
         },
         {
           "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "closeDepositAccount",
+      "discriminator": [
+        152,
+        6,
+        13,
+        164,
+        50,
+        219,
+        225,
+        43
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketBase",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "market_base.id",
+                "account": "marketBase"
+              }
+            ]
+          }
+        },
+        {
+          "name": "marketState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "marketBase"
+              },
+              {
+                "kind": "account",
+                "path": "market_state.id",
+                "account": "marketState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "depositAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "marketState"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
         }
       ],
       "args": []
@@ -3874,6 +3952,11 @@ export type Limitless = {
       "code": 6042,
       "name": "claimIsZeroError",
       "msg": "Claim is zero error!"
+    },
+    {
+      "code": 6043,
+      "name": "nonZeroAccountError",
+      "msg": "Unable to close non zero account!"
     }
   ],
   "types": [
@@ -4112,42 +4195,6 @@ export type Limitless = {
           },
           {
             "name": "totalBorrowQuote",
-            "type": "u64"
-          },
-          {
-            "name": "totalBorrowQuoteG",
-            "type": "u64"
-          },
-          {
-            "name": "startInterestRate",
-            "type": "u32"
-          },
-          {
-            "name": "startInterestRateG",
-            "type": "u32"
-          },
-          {
-            "name": "startInterestDate",
-            "type": "i64"
-          },
-          {
-            "name": "startInterestDateG",
-            "type": "i64"
-          },
-          {
-            "name": "cumInterestOwed",
-            "type": "u64"
-          },
-          {
-            "name": "cumInterestOwedG",
-            "type": "u64"
-          },
-          {
-            "name": "totalInterestPaid",
-            "type": "u64"
-          },
-          {
-            "name": "totalInterestPaidG",
             "type": "u64"
           },
           {
@@ -4521,22 +4568,6 @@ export type Limitless = {
             "type": "u32"
           },
           {
-            "name": "backupSet",
-            "type": "bool"
-          },
-          {
-            "name": "backupWallet",
-            "type": "pubkey"
-          },
-          {
-            "name": "newCreator",
-            "type": "pubkey"
-          },
-          {
-            "name": "proposalActive",
-            "type": "bool"
-          },
-          {
             "name": "index",
             "type": "u64"
           },
@@ -4549,10 +4580,6 @@ export type Limitless = {
             "type": "u8"
           },
           {
-            "name": "priceExpo",
-            "type": "u64"
-          },
-          {
             "name": "quotePoolDeficit",
             "type": "u64"
           },
@@ -4563,34 +4590,6 @@ export type Limitless = {
           {
             "name": "totalBorrow",
             "type": "u64"
-          },
-          {
-            "name": "totalBorrowGlobal",
-            "type": "u64"
-          },
-          {
-            "name": "interestRate",
-            "type": "u32"
-          },
-          {
-            "name": "interestAccrued",
-            "type": "u64"
-          },
-          {
-            "name": "interestAccruedGlobal",
-            "type": "u64"
-          },
-          {
-            "name": "maxInterest",
-            "type": "u32"
-          },
-          {
-            "name": "minInterest",
-            "type": "u32"
-          },
-          {
-            "name": "curveMod",
-            "type": "u8"
           },
           {
             "name": "baseDepositAddress",

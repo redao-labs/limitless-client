@@ -1,5 +1,5 @@
 {
-  "address": "z9P826HFdY5NPMgjgv4eubKFuxyJcjkRfdJuekZoaR6",
+  "address": "2VPmfzaJhVR9DpJJJwfW4sXGbAPRdcQjRhswjmS5Fx8D",
   "metadata": {
     "name": "limitless",
     "version": "0.1.0",
@@ -1310,6 +1310,84 @@
         },
         {
           "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_deposit_account",
+      "discriminator": [
+        152,
+        6,
+        13,
+        164,
+        50,
+        219,
+        225,
+        43
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "market_base",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "market_base.id",
+                "account": "MarketBase"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "market_base"
+              },
+              {
+                "kind": "account",
+                "path": "market_state.id",
+                "account": "MarketState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "deposit_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "market_state"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
         }
       ],
       "args": []
@@ -3868,6 +3946,11 @@
       "code": 6042,
       "name": "ClaimIsZeroError",
       "msg": "Claim is zero error!"
+    },
+    {
+      "code": 6043,
+      "name": "NonZeroAccountError",
+      "msg": "Unable to close non zero account!"
     }
   ],
   "types": [
@@ -4106,42 +4189,6 @@
           },
           {
             "name": "total_borrow_quote",
-            "type": "u64"
-          },
-          {
-            "name": "total_borrow_quote_g",
-            "type": "u64"
-          },
-          {
-            "name": "start_interest_rate",
-            "type": "u32"
-          },
-          {
-            "name": "start_interest_rate_g",
-            "type": "u32"
-          },
-          {
-            "name": "start_interest_date",
-            "type": "i64"
-          },
-          {
-            "name": "start_interest_date_g",
-            "type": "i64"
-          },
-          {
-            "name": "cum_interest_owed",
-            "type": "u64"
-          },
-          {
-            "name": "cum_interest_owed_g",
-            "type": "u64"
-          },
-          {
-            "name": "total_interest_paid",
-            "type": "u64"
-          },
-          {
-            "name": "total_interest_paid_g",
             "type": "u64"
           },
           {
@@ -4515,22 +4562,6 @@
             "type": "u32"
           },
           {
-            "name": "backup_set",
-            "type": "bool"
-          },
-          {
-            "name": "backup_wallet",
-            "type": "pubkey"
-          },
-          {
-            "name": "new_creator",
-            "type": "pubkey"
-          },
-          {
-            "name": "proposal_active",
-            "type": "bool"
-          },
-          {
             "name": "index",
             "type": "u64"
           },
@@ -4543,10 +4574,6 @@
             "type": "u8"
           },
           {
-            "name": "price_expo",
-            "type": "u64"
-          },
-          {
             "name": "quote_pool_deficit",
             "type": "u64"
           },
@@ -4557,34 +4584,6 @@
           {
             "name": "total_borrow",
             "type": "u64"
-          },
-          {
-            "name": "total_borrow_global",
-            "type": "u64"
-          },
-          {
-            "name": "interest_rate",
-            "type": "u32"
-          },
-          {
-            "name": "interest_accrued",
-            "type": "u64"
-          },
-          {
-            "name": "interest_accrued_global",
-            "type": "u64"
-          },
-          {
-            "name": "max_interest",
-            "type": "u32"
-          },
-          {
-            "name": "min_interest",
-            "type": "u32"
-          },
-          {
-            "name": "curve_mod",
-            "type": "u8"
           },
           {
             "name": "base_deposit_address",

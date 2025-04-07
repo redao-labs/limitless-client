@@ -16,6 +16,8 @@ openai-api-key.json
 showcase.json
 presaleLooper.json
 volumizer.json
+volumizerFast.json
+presaleScaler.json
 markets
 # Editor directories and files
 .vscode/*

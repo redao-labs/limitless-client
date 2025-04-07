@@ -85,7 +85,7 @@ export async function createIx(
             presaleOffset: new anchor.BN(presaleOffset),
             presaleSplit: presaleSplit,
             presaleFee: presaleFee,
-            scalerDecimals: 5,
+            scalerDecimals: 7,
             name: name,
             symbol: symbol,
             uri: uri,
@@ -497,6 +497,25 @@ export async function createDepositAccountIx(
     );
     const ix = await program.methods
         .createDepositAccount()
+        .accountsPartial({
+            user: user,
+            marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
+            marketState: market,
+            depositAccount: depositAccountAddress,
+        }).instruction()
+    return ix
+}
+export async function closeDepositAccountIx(
+    user: anchor.web3.PublicKey,
+    market: anchor.web3.PublicKey,
+    program: anchor.Program<Limitless>,
+): Promise<anchor.web3.TransactionInstruction> {
+    let [depositAccountAddress, depositAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
+        [market.toBuffer(), user.toBuffer()],
+        program.programId
+    );
+    const ix = await program.methods
+        .closeDepositAccount()
         .accountsPartial({
             user: user,
             marketBase: new anchor.web3.PublicKey(BASE_ADDRESS),
