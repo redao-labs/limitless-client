@@ -29,7 +29,7 @@ async function runCreator(client: LimitlessSDK, connectionUmi: string, quote: Pu
     let index = 0;
     for (const folder of folders) {
         index++;
-        if (index > 33) break;
+        if (index > 100) break;
         const folderPath = path.join(marketDir, folder);
         if (!fs.lstatSync(folderPath).isDirectory()) continue;
 
@@ -63,33 +63,38 @@ async function runCreator(client: LimitlessSDK, connectionUmi: string, quote: Pu
         const logoBuffer = fs.readFileSync(logoPath);
         // Proceed with uploading coverBuffer, logoBuffer, and metadata using client functions
         console.log(`Processing market deployment for folder ${folder}`);
-        
-        console.log("Uploading cover")
-        let coverUri = await client.uploadImage(coverBuffer, "cover", "png", "image/png", connectionUmi)
-        console.log("Uploading logo")
-        let logoUri = await client.uploadImage(logoBuffer, "logo", "png", "image/png", connectionUmi)
-        console.log("Uploading metadata")
-        let metadataUri = await client.uploadMetadata(
-            connectionUmi,
-            data.coinName,
-            data.coinSymbol,
-            data.coinDescription,
-            "test.test",
-            "test.test",
-            "test.test",
-            "test.test",
-            coverUri,
-            logoUri,
-            "40",
-            "40"
-        )
+        let metadataUri = ""
+        if (data.metadataLink) {
+            metadataUri = data.metadataLink
+        } else {
+            console.log("Uploading cover")
+            let coverUri = await client.uploadImage(coverBuffer, "cover", "png", "image/png", connectionUmi)
+            console.log("Uploading logo")
+            let logoUri = await client.uploadImage(logoBuffer, "logo", "png", "image/png", connectionUmi)
+            console.log("Uploading metadata")
+            metadataUri = await client.uploadMetadata(
+                connectionUmi,
+                data.coinName,
+                data.coinSymbol,
+                data.coinDescription,
+                "test.test",
+                "test.test",
+                "test.test",
+                "test.test",
+                coverUri,
+                logoUri,
+                "40",
+                "40"
+            )
+        }
+
 
         let associatedQuoteAddress = await getAssociatedTokenAddress(
             quote,
             client.wallet.publicKey
         );
-        const start = (Date.now() / 1000) + (60 * 60);
-        const presaleOffset = 60 * 30
+        const start = (Date.now() / 1000) + (60 * 15);
+        const presaleOffset = 60 * 5
         let market = await client.createToken(
             associatedQuoteAddress,
             quote,
@@ -110,18 +115,18 @@ async function runCreator(client: LimitlessSDK, connectionUmi: string, quote: Pu
         data.marketAddress = market.marketStateAddress.toBase58()
         data.metadataLink = metadataUri;
         fs.writeFileSync(jsonFile, JSON.stringify(data, null, 2), 'utf8');
-        await new Promise(r => setTimeout(r, 6000));
+        await new Promise(r => setTimeout(r, 60000));
     }
     //TODO, claim all fees
 }
 
 async function main() {
     try {
-        
+
         //load keypair, marketCreator.json
         //check mainnet for keypair is funded
         let keypair = await getSolanaKeypair("marketCreator")
-        const connectionUmi ="https://rpc.redao.id/a1fb2ed4-f5df-4688-982b-4fad1944ef0e/"
+        const connectionUmi = "https://rpc.redao.id/a1fb2ed4-f5df-4688-982b-4fad1944ef0e/"
         const connection = new anchor.web3.Connection("https://rpcdevnet.redao.id/a1fb2ed4-f5df-4688-982b-4fad1944ef0e/");
         const wallet = new anchor.Wallet(keypair);
         const lamportsBalance = await connection.getBalance(wallet.publicKey) / 10 ** 9;

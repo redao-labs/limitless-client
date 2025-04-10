@@ -4,8 +4,8 @@ import idl from './idl.json'
 import { TOKEN_PROGRAM_ID } from '@coral-xyz/anchor/dist/cjs/utils/token';
 import Decimal from 'decimal.js';
 
-export const PROGRAM_ID = "z9P826HFdY5NPMgjgv4eubKFuxyJcjkRfdJuekZoaR6"
-export const BASE_ADDRESS = "GTdRgfWZvcokP8dNFRB9wDvpDJSvXL5BFiNgaw3Tru8u"
+export const PROGRAM_ID = "2VPmfzaJhVR9DpJJJwfW4sXGbAPRdcQjRhswjmS5Fx8D"
+export const BASE_ADDRESS = "FVggf78xGZ3SUUuKuNzWUMvPxUUrBgf5r3r8MHRcXaS4"
 
 
 export const createProgramConnection = async (

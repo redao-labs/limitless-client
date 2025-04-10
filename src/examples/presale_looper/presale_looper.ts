@@ -26,7 +26,7 @@ import Decimal from 'decimal.js';
 async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
 
     //get all active presales and buy if no coupons
-    const res = await fetch(`https://devnet.api.takeoff.lol/livePresales?quoteMint=${quote}&orderBy=presalequote&skip=${0}`);
+    const res = await fetch(`https://devnet.api.takeoff.lol/livePresales?quoteMint=${quote}&skip=${0}`);
     const data = await res.json();
     
     console.log(`Fetched ${data.length} active presale markets!`)
@@ -44,7 +44,7 @@ async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
                 client.wallet.publicKey
             );
             //no coupons, lets buy some
-            let cost = new Decimal(100).mul(10 ** marketState.quoteDecimals);
+            let cost = new Decimal(1).mul(10 ** marketState.quoteDecimals);
             //get buyInfo - price impact, new price, maxCost
             let buyPresaleInfo = await client.presaleBuyInfo(cost, marketState)
             console.log("Expected amount that will be added to the presale pool:", buyPresaleInfo.out.div(10 ** marketState.baseDecimals).toString())

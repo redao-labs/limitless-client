@@ -34,7 +34,7 @@ async function refreshUniqueMarkets(quote: PublicKey) {
     const newUniqueMarkets = new Map<string, any>();
     let skip = 0;
     while (true) {
-        const res = await fetch(`https://devnet.api.takeoff.lol/newlyLaunchedMarkets?quoteMint=${quote.toBase58()}&orderBy=presalequote&skip=${skip}&limit=50`);
+        const res = await fetch(`https://devnet.api.takeoff.lol/newlyLaunchedMarkets?quoteMint=${quote.toBase58()}&skip=${skip}&limit=50`);
         const markets = await res.json();
         if (!Array.isArray(markets) || markets.length === 0) {
             break;
@@ -102,57 +102,62 @@ async function runVolumizer(client: LimitlessSDK, quote: PublicKey) {
             // if (market.floorratio > 0.95) {
             //     probs = 5;
             // }
-            console.log("PROBABILITY", probs);
+            // console.log("PROBABILITY", probs);
             if (direction > probs) {
                 let maxQuote = await getSize(new Decimal(market.price));
                 let costNorm = getRandomNumberInRangeWithDistribution(1, maxQuote.toNumber());
                 console.log("Buying for:", costNorm);
                 let buyInfo = await client.buyInfo(new Decimal(costNorm * (10 ** marketState.quoteDecimals)), marketState);
-                console.log("Expected amount to receive:", buyInfo.out.toString());
-                console.log(`Expected new price: ${buyInfo.newPrice.toString()}. Expected price impact: ${buyInfo.priceIncrease.toString()}`);
+                // console.log("Expected amount to receive:", buyInfo.out.toString());
+                // console.log(`Expected new price: ${buyInfo.newPrice.toString()}. Expected price impact: ${buyInfo.priceIncrease.toString()}`);
                 let maxCost = new anchor.BN(new Decimal(costNorm * (10 ** marketState.quoteDecimals)).mul(1.1).floor().toString());
-                console.log("Max cost:", new Decimal(maxCost.toString()).div(10 ** marketState.quoteDecimals).toString());
+                // console.log("Max cost:", new Decimal(maxCost.toString()).div(10 ** marketState.quoteDecimals).toString());
                 let buyRes = client.buy(new anchor.BN(buyInfo.out.mul(10 ** marketState.baseDecimals).toString()), maxCost, marketAddress, marketState, associatedQuoteAddress);
             } else {
-                let baseTokenAddress = await getAssociatedTokenAddress(marketState.baseMintAddress, client.wallet.publicKey);
-                let baseTokenAcc = await getAccount(
-                    client.connection,
-                    baseTokenAddress
-                );
-                let sellProceedsMax = await getSize(new Decimal(market.price));
-                console.log("Sell proceeds max", sellProceedsMax.toString());
-                let sellQProceeds = getRandomNumberInRangeWithDistribution(1, sellProceedsMax.toNumber());
-                console.log("Sell proceeds", sellQProceeds.toString());
-                let sellQNorm = await client.sellWithOutputInfo(new Decimal(sellQProceeds).mul(10 ** marketState.baseDecimals), marketState);
-                console.log("Sell Q norm", sellQNorm.toString());
-                let sellQ = sellQNorm.mul(10 ** marketState.baseDecimals);
-                console.log("Sell Q", sellQ.toString());
-                if (sellQ.greaterThan(new Decimal(baseTokenAcc.amount.toString()))) {
-                    sellQ = new Decimal(baseTokenAcc.amount.toString());
-                    sellQNorm = new Decimal(baseTokenAcc.amount.toString()).div(10 ** marketState.baseDecimals);
-                }
-                if (sellQ.greaterThan(1)) {
-                    console.log("Selling tokens:", sellQNorm);
-                    let sellInfo = await client.sellInfo(
-                        sellQ.floor(),
-                        marketState
+                try {
+                    let baseTokenAddress = await getAssociatedTokenAddress(marketState.baseMintAddress, client.wallet.publicKey);
+                    let baseTokenAcc = await getAccount(
+                        client.connection,
+                        baseTokenAddress
                     );
-                    console.log(`Sell ammQ: ${sellInfo.sellAmmQ.toString()}. Sell floorQ: ${sellInfo.sellFloorQ.toString()}. TotalQ: ${sellQNorm}`);
-                    console.log(`Amm out: ${sellInfo.outAmm.toString()}. Floor out: ${sellInfo.outFloor.toString()}. Total out: ${sellInfo.outAmm.add(sellInfo.outFloor).toString()}`);
-                    console.log(`Expected new price: ${sellInfo.newPrice.toString()}. Expected price impact: ${sellInfo.priceIncrease.toString()}`);
-                    let minProceeds = new Decimal(sellInfo.outAmm.mul(10 ** marketState.quoteDecimals)).mul(new Decimal(1).minus(new Decimal(0.1))).floor();
-                    console.log("Min proceeds:", minProceeds.toString());
-                    let sellRes = client.sell(new anchor.BN(sellInfo.sellAmmQ.floor().toString()), new anchor.BN(minProceeds.floor().toString()), marketAddress, marketState, baseTokenAddress);
-                    if (sellInfo.sellFloorQ.greaterThan(0)) {
-                        let minProceedsFloor = new Decimal(sellInfo.outFloor.mul(10 ** marketState.quoteDecimals)).mul(0.9).floor();
-                        console.log("Min proceeds floor:", minProceedsFloor.toString())
-                        let sellFloorRes = client.sellFloor(new anchor.BN(sellInfo.sellFloorQ.toString()), new anchor.BN(minProceedsFloor.floor().toString()), marketAddress, marketState, baseTokenAddress);
+                    let sellProceedsMax = await getSize(new Decimal(market.price));
+                    // console.log("Sell proceeds max", sellProceedsMax.toString());
+                    let sellQProceeds = getRandomNumberInRangeWithDistribution(1, sellProceedsMax.toNumber());
+                    // console.log("Sell proceeds", sellQProceeds.toString());
+                    let sellQNorm = await client.sellWithOutputInfo(new Decimal(sellQProceeds).mul(10 ** marketState.baseDecimals), marketState);
+                    console.log("Sell Q norm", sellQNorm.toString());
+                    let sellQ = sellQNorm.mul(10 ** marketState.baseDecimals);
+                    // console.log("Sell Q", sellQ.toString());
+                    if (sellQ.greaterThan(new Decimal(baseTokenAcc.amount.toString()))) {
+                        sellQ = new Decimal(baseTokenAcc.amount.toString());
+                        sellQNorm = new Decimal(baseTokenAcc.amount.toString()).div(10 ** marketState.baseDecimals);
                     }
+                    if (sellQ.greaterThan(1)) {
+                        // console.log("Selling tokens:", sellQNorm);
+                        let sellInfo = await client.sellInfo(
+                            sellQ.floor(),
+                            marketState
+                        );
+                        // console.log(`Sell ammQ: ${sellInfo.sellAmmQ.toString()}. Sell floorQ: ${sellInfo.sellFloorQ.toString()}. TotalQ: ${sellQNorm}`);
+                        // console.log(`Amm out: ${sellInfo.outAmm.toString()}. Floor out: ${sellInfo.outFloor.toString()}. Total out: ${sellInfo.outAmm.add(sellInfo.outFloor).toString()}`);
+                        // console.log(`Expected new price: ${sellInfo.newPrice.toString()}. Expected price impact: ${sellInfo.priceIncrease.toString()}`);
+                        let minProceeds = new Decimal(sellInfo.outAmm.mul(10 ** marketState.quoteDecimals)).mul(new Decimal(1).minus(new Decimal(0.1))).floor();
+                        // console.log("Min proceeds:", minProceeds.toString());
+                        let sellRes = client.sell(new anchor.BN(sellInfo.sellAmmQ.floor().toString()), new anchor.BN(minProceeds.floor().toString()), marketAddress, marketState, baseTokenAddress);
+                        if (sellInfo.sellFloorQ.greaterThan(0)) {
+                            let minProceedsFloor = new Decimal(sellInfo.outFloor.mul(10 ** marketState.quoteDecimals)).mul(0.9).floor();
+                            // console.log("Min proceeds floor:", minProceedsFloor.toString())
+                            let sellFloorRes = client.sellFloor(new anchor.BN(sellInfo.sellFloorQ.toString()), new anchor.BN(minProceedsFloor.floor().toString()), marketAddress, marketState, baseTokenAddress);
+                        }
+                    }
+                } catch (error) {
+
                 }
+
             }
             let newFloor = await client.getUpdateFloorQuantity(marketState)
-            let updateAndBoostFloorRes = await client.updateAndBoostFloor(new anchor.BN(newFloor.toString()), marketAddress, marketState)
-            console.log("Update and boost floor tx:", updateAndBoostFloorRes.txid)
+            let updateAndBoostFloorRes = client.updateAndBoostFloor(new anchor.BN(newFloor.toString()), marketAddress, marketState)
+            // console.log("Update and boost floor tx:", updateAndBoostFloorRes.txid)
 
         } catch (error) {
             console.log(error);
@@ -218,7 +223,7 @@ async function main() {
         }
         console.log('Using command line argument:', firstArg);
         let keypair = await getSolanaKeypair(walletName);
-        const connection = new anchor.web3.Connection("https://rpcdevnet.redao.id/a1fb2ed4-f5df-4688-982b-4fad1944ef0e/", { commitment: "processed" });
+        const connection = new anchor.web3.Connection("https://rpcdevnet.redao.id/a1fb2ed4-f5df-4688-982b-4fad1944ef0e/", { commitment: "processed", wsEndpoint: "wss://devnet.api.takeoff.lol/ws" });
         const wallet = new anchor.Wallet(keypair);
         const lamportsBalance = await connection.getBalance(wallet.publicKey) / 10 ** 9;
         console.log("Wallet address: ", keypair.publicKey.toBase58());
@@ -246,7 +251,8 @@ async function main() {
         while (true) {
             try {
                 await runVolumizer(client, new PublicKey(quote));
-                await new Promise(r => setTimeout(r, 200));
+                console.log("Done")
+                // await new Promise(r => setTimeout(r, 200));
             } catch (error) {
                 // Handle error if needed.
             }

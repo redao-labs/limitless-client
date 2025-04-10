@@ -158,11 +158,11 @@ export class LimitlessSDK {
 
             if (callback) callback("Sending transaction...", 'info');
             const txid = await this.connection.sendTransaction(signedTx, { skipPreflight: true });
-            console.log("Transaction sent:", txid);
+            console.log("Transaction sent:", "idk");
 
-            const confirmed = await this.trackTxProgress(txid, blockhash, callback);
+            //onst confirmed = await this.trackTxProgress(txid, blockhash, callback);
 
-            return { txid, confirmed };
+            return { txid: "idk", confirmed: true };
         } catch (error) {
             console.error("Transaction error:", error);
             if (callback) callback(`Error: ${error instanceof Error ? error.message : String(error)}`, 'error');

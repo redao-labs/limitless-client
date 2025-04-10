@@ -15,7 +15,7 @@ async function refreshUniqueMarkets(quote: PublicKey) {
     const newUniqueMarkets = new Map<string, any>();
     let skip = 0;
     while (true) {
-        const res = await fetch(`https://devnet.api.takeoff.lol/newlyLaunchedMarkets?quoteMint=${quote.toBase58()}&orderBy=presalequote&skip=${skip}&limit=50`);
+        const res = await fetch(`https://devnet.api.takeoff.lol/newlyLaunchedMarkets?quoteMint=${quote.toBase58()}&skip=${skip}&limit=50`);
         const markets = await res.json();
         if (!Array.isArray(markets) || markets.length === 0) break;
         for (const market of markets) {
