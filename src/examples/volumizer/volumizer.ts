@@ -42,7 +42,7 @@ async function refreshUniqueMarkets(quote: PublicKey) {
         for (const market of markets) {
             if (!market.address || !market.launchdate) continue;
             const marketLaunchDate = new Date(market.launchdate);
-            const cutoffDate = new Date('2025-04-04T00:00:00.000Z');
+            const cutoffDate = new Date('2025-05-09T00:00:00.000Z');
             if (marketLaunchDate <= cutoffDate) continue;
             if (!newUniqueMarkets.has(market.address)) {
                 newUniqueMarkets.set(market.address, market);
@@ -66,6 +66,7 @@ async function runVolumizer(client: LimitlessSDK, quote: PublicKey) {
         let marketAddress = new PublicKey(market.address);
         let marketState = await client.getMarket(marketAddress);
         let direction = getRandomNumberInRange(0, 100);
+
         try {
             if (!marketProbabilities.has(market.address)) {
                 marketProbabilities.set(market.address, 50)
@@ -85,10 +86,10 @@ async function runVolumizer(client: LimitlessSDK, quote: PublicKey) {
             // if (switchup > 999) {
             //     probs = 70;
             // }
-            if (market.floorratio < 0.1 && probs < 50) {
+            if (market.floorratio && market.floorratio < 0.1 && probs < 50) {
                 probs += rate * 10;
             }
-            if (market.floorratio > 0.9 && probs > 50) {
+            if (market.floorratio && market.floorratio > 0.9 && probs > 50) {
                 probs -= rate * 10;
             }
             marketProbabilities.set(market.address, probs);
@@ -105,8 +106,10 @@ async function runVolumizer(client: LimitlessSDK, quote: PublicKey) {
             // console.log("PROBABILITY", probs);
             if (direction > probs) {
                 let maxQuote = await getSize(new Decimal(market.price));
+                if (maxQuote.toNumber() < 2) {maxQuote = new Decimal(10)}
                 let costNorm = getRandomNumberInRangeWithDistribution(1, maxQuote.toNumber());
                 console.log("Buying for:", costNorm);
+
                 let buyInfo = await client.buyInfo(new Decimal(costNorm * (10 ** marketState.quoteDecimals)), marketState);
                 // console.log("Expected amount to receive:", buyInfo.out.toString());
                 // console.log(`Expected new price: ${buyInfo.newPrice.toString()}. Expected price impact: ${buyInfo.priceIncrease.toString()}`);
@@ -121,13 +124,17 @@ async function runVolumizer(client: LimitlessSDK, quote: PublicKey) {
                         baseTokenAddress
                     );
                     let sellProceedsMax = await getSize(new Decimal(market.price));
+                    if (sellProceedsMax.toNumber() < 2) {sellProceedsMax = new Decimal(10)}
                     // console.log("Sell proceeds max", sellProceedsMax.toString());
+
                     let sellQProceeds = getRandomNumberInRangeWithDistribution(1, sellProceedsMax.toNumber());
                     // console.log("Sell proceeds", sellQProceeds.toString());
+
                     let sellQNorm = await client.sellWithOutputInfo(new Decimal(sellQProceeds).mul(10 ** marketState.baseDecimals), marketState);
                     console.log("Sell Q norm", sellQNorm.toString());
                     let sellQ = sellQNorm.mul(10 ** marketState.baseDecimals);
                     // console.log("Sell Q", sellQ.toString());
+
                     if (sellQ.greaterThan(new Decimal(baseTokenAcc.amount.toString()))) {
                         sellQ = new Decimal(baseTokenAcc.amount.toString());
                         sellQNorm = new Decimal(baseTokenAcc.amount.toString()).div(10 ** marketState.baseDecimals);
@@ -151,12 +158,21 @@ async function runVolumizer(client: LimitlessSDK, quote: PublicKey) {
                         }
                     }
                 } catch (error) {
-
+                    console.log(error)
                 }
 
             }
-            let newFloor = await client.getUpdateFloorQuantity(marketState)
-            let updateAndBoostFloorRes = client.updateAndBoostFloor(new anchor.BN(newFloor.toString()), marketAddress, marketState)
+            try {
+                if (new Decimal(marketState.floorPoolSize.toString()).greaterThan(new Decimal(1000000))) {
+                    let newFloor = await client.getUpdateFloorQuantity(marketState)
+                    let updateAndBoostFloorRes = client.updateAndBoostFloor(new anchor.BN(newFloor.toString()), marketAddress, marketState)
+                }
+                
+            } catch(e) {
+                console.log(e)
+
+            }
+            
             // console.log("Update and boost floor tx:", updateAndBoostFloorRes.txid)
 
         } catch (error) {
@@ -223,7 +239,7 @@ async function main() {
         }
         console.log('Using command line argument:', firstArg);
         let keypair = await getSolanaKeypair(walletName);
-        const connection = new anchor.web3.Connection("https://rpcdevnet.redao.id/a1fb2ed4-f5df-4688-982b-4fad1944ef0e/", { commitment: "processed", wsEndpoint: "wss://devnet.api.takeoff.lol/ws" });
+        const connection = new anchor.web3.Connection("https:/devnet.api.takeoff.lol/rpc", { commitment: "processed", wsEndpoint: "wss://devnet.api.takeoff.lol/ws" });
         const wallet = new anchor.Wallet(keypair);
         const lamportsBalance = await connection.getBalance(wallet.publicKey) / 10 ** 9;
         console.log("Wallet address: ", keypair.publicKey.toBase58());

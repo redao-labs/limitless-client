@@ -1,5 +1,5 @@
 {
-  "address": "2VPmfzaJhVR9DpJJJwfW4sXGbAPRdcQjRhswjmS5Fx8D",
+  "address": "Hrb8aUy7HF4ArHGyfU6fRpHwKLwCPHT5aBVQj83G5Z5",
   "metadata": {
     "name": "limitless",
     "version": "0.1.0",
@@ -1081,6 +1081,38 @@
         {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "event_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
         }
       ],
       "args": []
@@ -1138,6 +1170,38 @@
         {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "event_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
         }
       ],
       "args": []
@@ -1433,6 +1497,38 @@
         {
           "name": "rent",
           "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
         }
       ],
       "args": [
@@ -1441,8 +1537,12 @@
           "type": "string"
         },
         {
-          "name": "fee",
-          "type": "u32"
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "CreateMarketBaseParams"
+            }
+          }
         }
       ]
     },
@@ -1556,6 +1656,22 @@
           }
         },
         {
+          "name": "market_preset",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "market_base"
+              },
+              {
+                "kind": "account",
+                "path": "market_preset.id",
+                "account": "MarketPreset"
+              }
+            ]
+          }
+        },
+        {
           "name": "market_state",
           "writable": true,
           "pda": {
@@ -1623,6 +1739,38 @@
         {
           "name": "clock",
           "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
         }
       ],
       "args": [
@@ -1635,6 +1783,112 @@
           "type": {
             "defined": {
               "name": "CreateMarketParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create_market_preset",
+      "discriminator": [
+        124,
+        49,
+        58,
+        250,
+        1,
+        16,
+        221,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "market_base",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "market_base.id",
+                "account": "MarketBase"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market_preset",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "market_base"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "quote_mint"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "id",
+          "type": "string"
+        },
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "CreateMarketPresetParams"
             }
           }
         }
@@ -1660,7 +1914,6 @@
         },
         {
           "name": "market_base",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -1771,7 +2024,6 @@
         },
         {
           "name": "market_base",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -1892,7 +2144,6 @@
         },
         {
           "name": "market_base",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -2014,7 +2265,6 @@
         },
         {
           "name": "market_base",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -2129,7 +2379,6 @@
         },
         {
           "name": "market_base",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -2537,7 +2786,6 @@
         },
         {
           "name": "base_mint",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -2660,6 +2908,143 @@
       "args": [
         {
           "name": "deposit_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "donate_floor",
+      "discriminator": [
+        187,
+        196,
+        229,
+        233,
+        116,
+        233,
+        4,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "market_base",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "market_base.id",
+                "account": "MarketBase"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "market_base"
+              },
+              {
+                "kind": "account",
+                "path": "market_state.id",
+                "account": "MarketState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_quote_token",
+          "writable": true
+        },
+        {
+          "name": "quote_token_floor_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "market_state"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  113,
+                  117,
+                  111,
+                  116,
+                  101,
+                  95,
+                  102,
+                  108,
+                  111,
+                  111,
+                  114,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
           "type": "u64"
         }
       ]
@@ -3439,7 +3824,6 @@
         },
         {
           "name": "base_mint",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -3599,6 +3983,19 @@
       ]
     },
     {
+      "name": "MarketPreset",
+      "discriminator": [
+        112,
+        30,
+        67,
+        124,
+        54,
+        56,
+        176,
+        157
+      ]
+    },
+    {
       "name": "MarketState",
       "discriminator": [
         0,
@@ -3640,55 +4037,133 @@
       ]
     },
     {
-      "name": "BorrowEvent",
+      "name": "BorrowRepayEvent",
       "discriminator": [
-        86,
-        8,
-        140,
-        206,
+        145,
+        225,
+        128,
+        71,
+        30,
+        10,
+        61,
+        57
+      ]
+    },
+    {
+      "name": "CouponClaimEvent",
+      "discriminator": [
+        117,
+        228,
+        117,
+        152,
+        6,
+        79,
+        244,
+        237
+      ]
+    },
+    {
+      "name": "CreateBaseEvent",
+      "discriminator": [
+        158,
+        49,
+        175,
+        144,
+        186,
+        181,
+        103,
+        226
+      ]
+    },
+    {
+      "name": "CreateMarketEvent",
+      "discriminator": [
+        192,
+        85,
+        193,
+        210,
+        137,
+        36,
+        225,
+        173
+      ]
+    },
+    {
+      "name": "CreateMarketPresetEvent",
+      "discriminator": [
+        116,
+        96,
+        146,
+        176,
+        27,
+        232,
+        66,
+        215
+      ]
+    },
+    {
+      "name": "CreatorFeeClaimEvent",
+      "discriminator": [
+        165,
+        50,
+        11,
+        230,
+        122,
         215,
-        179,
-        118,
-        201
+        114,
+        169
       ]
     },
     {
-      "name": "ClaimEvent",
-      "discriminator": [
-        93,
-        15,
-        70,
-        170,
-        48,
-        140,
-        212,
-        219
-      ]
-    },
-    {
-      "name": "LiquidationEvent",
+      "name": "DepositWithdrawEvent",
       "discriminator": [
         3,
-        13,
-        21,
-        93,
-        173,
-        136,
-        72,
-        144
+        169,
+        153,
+        171,
+        156,
+        2,
+        60,
+        159
       ]
     },
     {
-      "name": "LiquidationEventFloor",
+      "name": "DonateFloorEvent",
       "discriminator": [
-        20,
+        9,
+        48,
+        167,
+        30,
         161,
-        116,
-        121,
-        129,
-        118,
-        249,
-        138
+        255,
+        228,
+        93
+      ]
+    },
+    {
+      "name": "PlatformFeeClaimEvent",
+      "discriminator": [
+        32,
+        81,
+        228,
+        220,
+        157,
+        89,
+        149,
+        227
+      ]
+    },
+    {
+      "name": "PresaleTradeEvent",
+      "discriminator": [
+        228,
+        226,
+        217,
+        79,
+        242,
+        37,
+        73,
+        112
       ]
     },
     {
@@ -3951,6 +4426,91 @@
       "code": 6043,
       "name": "NonZeroAccountError",
       "msg": "Unable to close non zero account!"
+    },
+    {
+      "code": 6044,
+      "name": "PresetDisabledError",
+      "msg": "Market preset disabled!"
+    },
+    {
+      "code": 6045,
+      "name": "DecimalMismatchError",
+      "msg": "Preset and quote decimal mismatch!"
+    },
+    {
+      "code": 6046,
+      "name": "InvalidQuoteMintError",
+      "msg": "Invalid quote mint!"
+    },
+    {
+      "code": 6047,
+      "name": "BuyFeeTooLargeError",
+      "msg": "Buy fee too large!"
+    },
+    {
+      "code": 6048,
+      "name": "BuyFeeTooSmallError",
+      "msg": "Buy fee too small!"
+    },
+    {
+      "code": 6049,
+      "name": "SellFeeTooLargeError",
+      "msg": "Sell fee too large!"
+    },
+    {
+      "code": 6050,
+      "name": "SellFeeTooSmallError",
+      "msg": "Sell fee too small!"
+    },
+    {
+      "code": 6051,
+      "name": "CreatorSplitTooLargeError",
+      "msg": "Creator split too large!"
+    },
+    {
+      "code": 6052,
+      "name": "PresaleDurationTooShortError",
+      "msg": "Presale duration too short!"
+    },
+    {
+      "code": 6053,
+      "name": "PresaleFeeTooLargeError",
+      "msg": "Presale fee too large!"
+    },
+    {
+      "code": 6054,
+      "name": "PresaleFeeTooSmallError",
+      "msg": "Presale fee too small!"
+    },
+    {
+      "code": 6055,
+      "name": "PresaleSplitTooLargeError",
+      "msg": "Presale split too large!"
+    },
+    {
+      "code": 6056,
+      "name": "CreatorBuyDisabledError",
+      "msg": "Creator buy disabled!"
+    },
+    {
+      "code": 6057,
+      "name": "MarketVaultsNotCreatedError",
+      "msg": "Vaults not created!"
+    },
+    {
+      "code": 6058,
+      "name": "InsufficientQuoteLiquidityError",
+      "msg": "Insufficient quote liquidity!"
+    },
+    {
+      "code": 6059,
+      "name": "AmmSellFloorError",
+      "msg": "Amm sell is at floor!"
+    },
+    {
+      "code": 6060,
+      "name": "NoAvailableFeesError",
+      "msg": "No fees to claim!"
     }
   ],
   "types": [
@@ -3976,14 +4536,18 @@
             "type": "u64"
           },
           {
-            "name": "decimals",
-            "type": "u8"
+            "name": "preset",
+            "type": "u16"
+          },
+          {
+            "name": "base_mint",
+            "type": "pubkey"
           }
         ]
       }
     },
     {
-      "name": "BorrowEvent",
+      "name": "BorrowRepayEvent",
       "type": {
         "kind": "struct",
         "fields": [
@@ -4008,8 +4572,20 @@
             "type": "u64"
           },
           {
+            "name": "floor_pool",
+            "type": "u64"
+          },
+          {
+            "name": "quote_pool",
+            "type": "u64"
+          },
+          {
             "name": "decimals",
             "type": "u8"
+          },
+          {
+            "name": "base_mint",
+            "type": "pubkey"
           }
         ]
       }
@@ -4031,10 +4607,14 @@
       }
     },
     {
-      "name": "ClaimEvent",
+      "name": "CouponClaimEvent",
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "quote_deposit",
+            "type": "u64"
+          },
           {
             "name": "amount",
             "type": "u64"
@@ -4044,24 +4624,116 @@
             "type": "u64"
           },
           {
-            "name": "divisor_pow",
-            "type": "u8"
+            "name": "preset",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateBaseEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fee",
+            "type": "u16"
           },
           {
-            "name": "gradient",
-            "type": "u32"
+            "name": "fee_bps",
+            "type": "u16"
           },
           {
-            "name": "offset",
-            "type": "u32"
+            "name": "buy_fee",
+            "type": "u16"
           },
           {
-            "name": "scaler",
-            "type": "u8"
+            "name": "sell_fee",
+            "type": "u16"
           },
           {
-            "name": "decimals",
-            "type": "u8"
+            "name": "creator_split",
+            "type": "u16"
+          },
+          {
+            "name": "p_buy_fee",
+            "type": "u16"
+          },
+          {
+            "name": "p_creator_split",
+            "type": "u16"
+          },
+          {
+            "name": "min_p_offset",
+            "type": "i64"
+          },
+          {
+            "name": "min_delay_delta",
+            "type": "i64"
+          },
+          {
+            "name": "max_delay_delta",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateMarketBaseParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "platform_fee",
+            "type": "u16"
+          },
+          {
+            "name": "max_buy_fee",
+            "type": "u16"
+          },
+          {
+            "name": "max_sell_fee",
+            "type": "u16"
+          },
+          {
+            "name": "max_creator_split",
+            "type": "u16"
+          },
+          {
+            "name": "max_p_buy_fee",
+            "type": "u16"
+          },
+          {
+            "name": "max_p_creator_split",
+            "type": "u16"
+          },
+          {
+            "name": "min_p_offset",
+            "type": "i64"
+          },
+          {
+            "name": "min_delay_delta",
+            "type": "i64"
+          },
+          {
+            "name": "max_delay_delta",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateMarketEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "launch_date",
+            "type": "i64"
+          },
+          {
+            "name": "presale_offset",
+            "type": "i64"
           }
         ]
       }
@@ -4072,36 +4744,12 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "start_quantity",
-            "type": "u64"
-          },
-          {
-            "name": "offset",
-            "type": "u64"
-          },
-          {
-            "name": "min_trade_size",
-            "type": "u64"
-          },
-          {
-            "name": "gradient",
-            "type": "u64"
-          },
-          {
-            "name": "pre_mint",
-            "type": "u64"
-          },
-          {
-            "name": "continuous_mint",
-            "type": "bool"
-          },
-          {
             "name": "buy_fee",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "sell_fee",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "launch_date",
@@ -4109,19 +4757,7 @@
           },
           {
             "name": "creator_split",
-            "type": "u32"
-          },
-          {
-            "name": "divisor_pow",
-            "type": "u8"
-          },
-          {
-            "name": "pow_1",
-            "type": "u8"
-          },
-          {
-            "name": "pow_2",
-            "type": "u8"
+            "type": "u16"
           },
           {
             "name": "presale_offset",
@@ -4129,15 +4765,11 @@
           },
           {
             "name": "presale_split",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "presale_fee",
-            "type": "u32"
-          },
-          {
-            "name": "scaler_decimals",
-            "type": "u8"
+            "type": "u16"
           },
           {
             "name": "name",
@@ -4152,20 +4784,124 @@
             "type": "string"
           },
           {
-            "name": "max_interest",
-            "type": "u32"
+            "name": "presale_base_split",
+            "type": "bool"
           },
           {
-            "name": "min_interest",
-            "type": "u32"
+            "name": "creator_buy_max",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateMarketPresetEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "preset_enabled",
+            "type": "bool"
           },
           {
-            "name": "curve_mod",
+            "name": "decimals",
             "type": "u8"
           },
           {
-            "name": "presale_base_split",
+            "name": "start_q",
+            "type": "u64"
+          },
+          {
+            "name": "offset",
+            "type": "u64"
+          },
+          {
+            "name": "gradient",
+            "type": "u64"
+          },
+          {
+            "name": "divisor_pow",
+            "type": "u8"
+          },
+          {
+            "name": "pow_1",
+            "type": "u8"
+          },
+          {
+            "name": "pow_2",
+            "type": "u8"
+          },
+          {
+            "name": "scaler_decimals",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateMarketPresetParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "preset_enabled",
             "type": "bool"
+          },
+          {
+            "name": "decimals",
+            "type": "u8"
+          },
+          {
+            "name": "start_q",
+            "type": "u64"
+          },
+          {
+            "name": "offset",
+            "type": "u64"
+          },
+          {
+            "name": "gradient",
+            "type": "u64"
+          },
+          {
+            "name": "divisor_pow",
+            "type": "u8"
+          },
+          {
+            "name": "pow_1",
+            "type": "u8"
+          },
+          {
+            "name": "pow_2",
+            "type": "u8"
+          },
+          {
+            "name": "scaler_decimals",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreatorFeeClaimEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "base_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "preset",
+            "type": "u16"
           }
         ]
       }
@@ -4184,6 +4920,10 @@
             "type": "u8"
           },
           {
+            "name": "decimals",
+            "type": "u8"
+          },
+          {
             "name": "total_deposit_base",
             "type": "u64"
           },
@@ -4194,77 +4934,41 @@
           {
             "name": "market_state_address",
             "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "LiquidationEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "cqd",
-            "type": "u64"
           },
           {
-            "name": "quote_pool",
-            "type": "u64"
-          },
-          {
-            "name": "base_pool",
-            "type": "u64"
-          },
-          {
-            "name": "is_buy",
-            "type": "bool"
-          },
-          {
-            "name": "divisor_pow",
-            "type": "u8"
-          },
-          {
-            "name": "gradient",
-            "type": "u32"
-          },
-          {
-            "name": "offset",
-            "type": "u32"
-          },
-          {
-            "name": "scaler",
-            "type": "u8"
-          },
-          {
-            "name": "decimals",
-            "type": "u8"
-          },
-          {
-            "name": "target",
+            "name": "base_mint_address",
             "type": "pubkey"
           }
         ]
       }
     },
     {
-      "name": "LiquidationEventFloor",
+      "name": "DepositWithdrawEvent",
       "type": {
         "kind": "struct",
         "fields": [
           {
+            "name": "total_deposited_global",
+            "type": "u64"
+          },
+          {
+            "name": "total_borrowed_global",
+            "type": "u64"
+          },
+          {
+            "name": "total_deposited",
+            "type": "u64"
+          },
+          {
+            "name": "total_borrowed",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
             "name": "floor_pool",
-            "type": "u64"
-          },
-          {
-            "name": "total_burned",
-            "type": "u64"
-          },
-          {
-            "name": "total_burn_cost",
-            "type": "u64"
-          },
-          {
-            "name": "cqd",
             "type": "u64"
           },
           {
@@ -4272,35 +4976,27 @@
             "type": "u64"
           },
           {
-            "name": "base_pool",
+            "name": "decimals",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DonateFloorEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
             "type": "u64"
           },
           {
-            "name": "is_buy",
-            "type": "bool"
+            "name": "preset",
+            "type": "u16"
           },
           {
-            "name": "divisor_pow",
-            "type": "u8"
-          },
-          {
-            "name": "gradient",
-            "type": "u32"
-          },
-          {
-            "name": "offset",
-            "type": "u32"
-          },
-          {
-            "name": "scaler",
-            "type": "u8"
-          },
-          {
-            "name": "decimals",
-            "type": "u8"
-          },
-          {
-            "name": "target",
+            "name": "base_mint",
             "type": "pubkey"
           }
         ]
@@ -4316,7 +5012,7 @@
             "type": {
               "array": [
                 "u8",
-                20
+                5
               ]
             }
           },
@@ -4334,7 +5030,7 @@
           },
           {
             "name": "platform_fee",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "fee_address",
@@ -4342,19 +5038,116 @@
           },
           {
             "name": "fee_bps",
-            "type": "u32"
+            "type": "u16"
+          },
+          {
+            "name": "max_buy_fee",
+            "type": "u16"
+          },
+          {
+            "name": "max_sell_fee",
+            "type": "u16"
+          },
+          {
+            "name": "max_creator_split",
+            "type": "u16"
+          },
+          {
+            "name": "max_p_buy_fee",
+            "type": "u16"
+          },
+          {
+            "name": "max_p_creator_split",
+            "type": "u16"
+          },
+          {
+            "name": "min_p_offset",
+            "type": "i64"
+          },
+          {
+            "name": "min_delay_delta",
+            "type": "i64"
+          },
+          {
+            "name": "max_delay_delta",
+            "type": "i64"
+          },
+          {
+            "name": "market_preset_index",
+            "type": "u16"
           },
           {
             "name": "is_paused",
             "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketPreset",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "array": [
+                "u8",
+                20
+              ]
+            }
           },
           {
-            "name": "season",
-            "type": "u32"
+            "name": "index",
+            "type": "u16"
           },
           {
-            "name": "season_enabled",
+            "name": "market_base_address",
+            "type": "pubkey"
+          },
+          {
+            "name": "quote_mint_address",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_preset_bump",
+            "type": "u8"
+          },
+          {
+            "name": "preset_enabled",
             "type": "bool"
+          },
+          {
+            "name": "decimals",
+            "type": "u8"
+          },
+          {
+            "name": "start_q",
+            "type": "u64"
+          },
+          {
+            "name": "offset",
+            "type": "u64"
+          },
+          {
+            "name": "gradient",
+            "type": "u64"
+          },
+          {
+            "name": "divisor_pow",
+            "type": "u8"
+          },
+          {
+            "name": "pow_1",
+            "type": "u8"
+          },
+          {
+            "name": "pow_2",
+            "type": "u8"
+          },
+          {
+            "name": "scaler_decimals",
+            "type": "u8"
           }
         ]
       }
@@ -4413,10 +5206,6 @@
             "type": "u64"
           },
           {
-            "name": "price",
-            "type": "u64"
-          },
-          {
             "name": "base_decimals",
             "type": "u8"
           },
@@ -4453,28 +5242,12 @@
             "type": "u64"
           },
           {
-            "name": "total_sold_base",
-            "type": "u128"
-          },
-          {
-            "name": "total_sold_quote",
-            "type": "u128"
-          },
-          {
-            "name": "total_bought_base",
-            "type": "u128"
-          },
-          {
-            "name": "total_bought_quote",
-            "type": "u128"
-          },
-          {
             "name": "total_sells",
-            "type": "u128"
+            "type": "u64"
           },
           {
             "name": "total_buys",
-            "type": "u128"
+            "type": "u64"
           },
           {
             "name": "total_minted",
@@ -4530,40 +5303,24 @@
             "type": "i64"
           },
           {
-            "name": "pre_mint",
-            "type": "u64"
-          },
-          {
-            "name": "pre_mint_claimed",
-            "type": "bool"
-          },
-          {
-            "name": "continuous_mint",
-            "type": "bool"
-          },
-          {
-            "name": "creator_minted",
-            "type": "u64"
-          },
-          {
             "name": "buy_fee",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "sell_fee",
-            "type": "u32"
-          },
-          {
-            "name": "receive_address",
-            "type": "pubkey"
+            "type": "u16"
           },
           {
             "name": "creator_split",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "index",
             "type": "u64"
+          },
+          {
+            "name": "preset_index",
+            "type": "u16"
           },
           {
             "name": "scaler_decimals",
@@ -4611,11 +5368,11 @@
           },
           {
             "name": "presale_split",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "presale_fee",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "pow_1",
@@ -4658,15 +5415,15 @@
             "type": "bool"
           },
           {
-            "name": "vaults_created_5",
-            "type": "bool"
-          },
-          {
             "name": "presale_base_split",
             "type": "bool"
           },
           {
             "name": "creator_base_share",
+            "type": "u64"
+          },
+          {
+            "name": "creator_buy_max",
             "type": "u64"
           },
           {
@@ -4676,6 +5433,42 @@
           {
             "name": "creator_claimed",
             "type": "bool"
+          },
+          {
+            "name": "min_presale_target",
+            "type": "u64"
+          },
+          {
+            "name": "nft_auth",
+            "type": "bool"
+          },
+          {
+            "name": "nft_mint",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlatformFeeClaimEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "base_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "preset",
+            "type": "u16"
           }
         ]
       }
@@ -4703,12 +5496,72 @@
             "type": "pubkey"
           },
           {
+            "name": "base_mint_address",
+            "type": "pubkey"
+          },
+          {
             "name": "quote_deposited",
             "type": "u64"
           },
           {
+            "name": "decimals",
+            "type": "u8"
+          },
+          {
             "name": "coupon_bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PresaleTradeEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cqd",
+            "type": "u64"
+          },
+          {
+            "name": "quote_pool",
+            "type": "u64"
+          },
+          {
+            "name": "base_pool",
+            "type": "u64"
+          },
+          {
+            "name": "is_buy",
+            "type": "bool"
+          },
+          {
+            "name": "preset",
+            "type": "u16"
+          },
+          {
+            "name": "in_amt",
+            "type": "u64"
+          },
+          {
+            "name": "out_amt",
+            "type": "u64"
+          },
+          {
+            "name": "plat_fee",
+            "type": "u64"
+          },
+          {
+            "name": "base_split",
+            "type": "bool"
+          },
+          {
+            "name": "creator_fee",
+            "type": "u64"
+          },
+          {
+            "name": "floor_fee",
+            "type": "u64"
           }
         ]
       }
@@ -4747,24 +5600,16 @@
             "type": "bool"
           },
           {
-            "name": "divisor_pow",
-            "type": "u8"
+            "name": "preset",
+            "type": "u16"
           },
           {
-            "name": "gradient",
-            "type": "u32"
+            "name": "in_amt",
+            "type": "u64"
           },
           {
-            "name": "offset",
-            "type": "u32"
-          },
-          {
-            "name": "scaler",
-            "type": "u8"
-          },
-          {
-            "name": "decimals",
-            "type": "u8"
+            "name": "out_amt",
+            "type": "u64"
           }
         ]
       }
@@ -4807,24 +5652,28 @@
             "type": "bool"
           },
           {
-            "name": "divisor_pow",
-            "type": "u8"
+            "name": "preset",
+            "type": "u16"
           },
           {
-            "name": "gradient",
-            "type": "u32"
+            "name": "in_amt",
+            "type": "u64"
           },
           {
-            "name": "offset",
-            "type": "u32"
+            "name": "out_amt",
+            "type": "u64"
           },
           {
-            "name": "scaler",
-            "type": "u8"
+            "name": "plat_fee",
+            "type": "u64"
           },
           {
-            "name": "decimals",
-            "type": "u8"
+            "name": "creator_fee",
+            "type": "u64"
+          },
+          {
+            "name": "floor_fee",
+            "type": "u64"
           }
         ]
       }
@@ -4839,24 +5688,12 @@
             "type": "u64"
           },
           {
-            "name": "divisor_pow",
-            "type": "u8"
+            "name": "preset",
+            "type": "u16"
           },
           {
-            "name": "gradient",
-            "type": "u32"
-          },
-          {
-            "name": "offset",
-            "type": "u32"
-          },
-          {
-            "name": "scaler",
-            "type": "u8"
-          },
-          {
-            "name": "decimals",
-            "type": "u8"
+            "name": "base_mint",
+            "type": "pubkey"
           }
         ]
       }

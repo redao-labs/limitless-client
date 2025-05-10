@@ -29,7 +29,8 @@ import {
     floorProceeds,
     lookupLimitDown,
     lookupLimitDownWithOutput,
-    closeDepositAccountIx
+    closeDepositAccountIx,
+    randomString
 } from './ix-builder';
 import {
     Connection,
@@ -166,7 +167,7 @@ export class LimitlessSDK {
         } catch (error) {
             console.error("Transaction error:", error);
             if (callback) callback(`Error: ${error instanceof Error ? error.message : String(error)}`, 'error');
-            throw error;
+            // throw error;
         }
     }
     //create metadata
@@ -293,8 +294,8 @@ export class LimitlessSDK {
         try {
             if (callback) callback("Creating token...", 'info');
 
-            const MARKET_ID = Math.random().toString(36).slice(2, 8).toUpperCase();
-
+            const MARKET_ID = await randomString(20)
+            
             let ixes: TransactionInstruction[] = [];
             ixes.push(ComputeBudgetProgram.setComputeUnitLimit({ units: 1_200_000 }));
 
@@ -502,6 +503,7 @@ export class LimitlessSDK {
     }
     async presaleBuy(
         quantity: anchor.BN,
+        maxCost: anchor.BN,
         userQuoteToken: PublicKey,
         market: PublicKey,
         marketState: (typeof this.program.account.marketState['fetch']) extends (...args: any) => Promise<infer T> ? T : never,
@@ -514,7 +516,7 @@ export class LimitlessSDK {
         ];
         const ix = await presaleBuyIx(
             quantity,
-            new anchor.BN(100),
+            maxCost,
             this.wallet.publicKey,
             userQuoteToken,
             market,
@@ -1222,6 +1224,7 @@ export class LimitlessSDK {
         // Return null if no error message is found
         return null;
     }
+    
 }
 
 // Re-export useful types and functions

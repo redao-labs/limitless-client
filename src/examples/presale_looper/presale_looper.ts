@@ -28,7 +28,7 @@ async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
     //get all active presales and buy if no coupons
     const res = await fetch(`https://devnet.api.takeoff.lol/livePresales?quoteMint=${quote}&skip=${0}`);
     const data = await res.json();
-    
+
     console.log(`Fetched ${data.length} active presale markets!`)
     for (let i = 0; i < data.length; i++) {
         let presaleMkt = data[i]
@@ -44,15 +44,18 @@ async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
                 client.wallet.publicKey
             );
             //no coupons, lets buy some
-            let cost = new Decimal(1).mul(10 ** marketState.quoteDecimals);
+            let cost = new Decimal(100).mul(10 ** marketState.quoteDecimals);
             //get buyInfo - price impact, new price, maxCost
             let buyPresaleInfo = await client.presaleBuyInfo(cost, marketState)
             console.log("Expected amount that will be added to the presale pool:", buyPresaleInfo.out.div(10 ** marketState.baseDecimals).toString())
             console.log(`Expected new price: ${buyPresaleInfo.newPrice.toString()}. Expected price impact: ${buyPresaleInfo.priceIncrease.toString()}%`)
             console.log(`Expected coupon share of pool: ${buyPresaleInfo.presaleInfo.baseSharePercent}%. Expected base tokens received: ${buyPresaleInfo.presaleInfo.baseShare.toString()}. Average price: ${buyPresaleInfo.presaleInfo.avgPrice.toString()}`)
+            let maxCostPresale = new anchor.BN(new Decimal(cost).mul(1.01).floor().toString())
+            console.log("Max cost:", new Decimal(maxCostPresale.toString()).div(10 ** marketState.quoteDecimals).toString())
             //todo expected share this coupons will have
             let presaleBuyRes = await client.presaleBuy(
                 new anchor.BN(buyPresaleInfo.out.toString()),
+                new anchor.BN(maxCostPresale.toString()),
                 associatedQuoteAddress,
                 marketAddress,
                 marketState
@@ -74,24 +77,24 @@ async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
         console.log("Claiming coupon for market:", marketAddress.toBase58())
 
         if (Date.now() / 1000 > marketState.launchDate.toNumber()) {
-            
+
             let claimPresaleRes = await client.claimPresale([couponKey], marketAddress, marketState)
             console.log("Claim presale tx:", claimPresaleRes.txid)
         } else {
             console.log("Market not launched yet")
         }
-        
+
     }
 
     //get all base tokens
     //for each base token, create and deposit into deposit account
-    let allBaseTokens = await client.connection.getTokenAccountsByOwner(client.wallet.publicKey, {programId: TOKEN_PROGRAM_ID})
+    let allBaseTokens = await client.connection.getTokenAccountsByOwner(client.wallet.publicKey, { programId: TOKEN_PROGRAM_ID })
     console.log(`Found ${allBaseTokens.value.length} token accounts`)
     for (let i = 0; i < allBaseTokens.value.length; i++) {
         let baseTokenBuff = allBaseTokens.value[i].account.data
         const baseToken = AccountLayout.decode(baseTokenBuff);
 
-        console.log("Got token account:",  allBaseTokens.value[i].pubkey.toBase58())
+        console.log("Got token account:", allBaseTokens.value[i].pubkey.toBase58())
         console.log("Balance:", baseToken.amount, "Mint:", baseToken.mint.toBase58())
         if (baseToken.mint.toBase58() != quote.toBase58() && baseToken.amount > BigInt(0)) {
             const marketStateRes = await fetch(`https://devnet.api.takeoff.lol/marketState?baseMintAddress=${baseToken.mint.toBase58()}`);
@@ -107,7 +110,7 @@ async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
         }
         //get market address for the mint
 
-        
+
         //create deposit account, deposit into deposit account
     }
 
@@ -146,10 +149,10 @@ async function runPresaleLooper(client: LimitlessSDK, quote: PublicKey) {
             console.log(`Expected new price: ${buyInfo.newPrice.toString()}. Expected price impact: ${buyInfo.priceIncrease.toString()}`)
             let maxCost = new anchor.BN(buyAmt.mul(1.1).floor().toString())
             console.log("Max cost:", new Decimal(maxCost.toString()).div(10 ** marketState.quoteDecimals).toString())
-            let buyRes  = await client.buy(new anchor.BN(buyInfo.out.mul(10 ** marketState.baseDecimals).toString()), maxCost, marketAddress, marketState, associatedQuoteAddress)
+            let buyRes = await client.buy(new anchor.BN(buyInfo.out.mul(10 ** marketState.baseDecimals).toString()), maxCost, marketAddress, marketState, associatedQuoteAddress)
             console.log("Buy tx:", buyRes.txid)
         }
-        
+
     }
     //update floors
     //for each deposit account, max borrow, max buy base token
@@ -186,9 +189,9 @@ async function main() {
             try {
                 await runPresaleLooper(client, new PublicKey(quote))
             } catch (error) {
-                
+
             }
-            // await new Promise(r => setTimeout(r, 1000));
+            await new Promise(r => setTimeout(r, 1000));
 
         }
 

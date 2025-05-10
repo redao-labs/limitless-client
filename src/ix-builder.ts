@@ -3,9 +3,11 @@ import { Limitless } from './limitless';
 import idl from './idl.json'
 import { TOKEN_PROGRAM_ID } from '@coral-xyz/anchor/dist/cjs/utils/token';
 import Decimal from 'decimal.js';
+import { PublicKey } from '@solana/web3.js';
 
-export const PROGRAM_ID = "2VPmfzaJhVR9DpJJJwfW4sXGbAPRdcQjRhswjmS5Fx8D"
-export const BASE_ADDRESS = "FVggf78xGZ3SUUuKuNzWUMvPxUUrBgf5r3r8MHRcXaS4"
+export const PROGRAM_ID = "Hrb8aUy7HF4ArHGyfU6fRpHwKLwCPHT5aBVQj83G5Z5"
+export const BASE_ADDRESS = "8tbV9JoWhtxm7H8ZQRCwdxakF5pm5pUJ3WPxnVFH3jDd"
+export const MARKET_PRESET_ADDRESS = "AXsse9Kra3oh2GCRYNDxhr63UtbpnEUZU2CdoouJ6C6o"
 
 
 export const createProgramConnection = async (
@@ -69,35 +71,24 @@ export async function createIx(
     );
     const createMarketIx = await program.methods
         .createMarket(marketId, {
-            startQuantity: new anchor.BN(0),
-            offset: new anchor.BN(100000),
-            minTradeSize: new anchor.BN(1),
-            gradient: new anchor.BN(100000000),
-            preMint: new anchor.BN(0),
-            continuousMint: false,
             buyFee: buyFee,
             sellFee: sellFee,
             launchDate: new anchor.BN(start),
             creatorSplit: creatorSplit,
-            divisorPow: 14,
-            pow1: 6,
-            pow2: 20,
             presaleOffset: new anchor.BN(presaleOffset),
             presaleSplit: presaleSplit,
             presaleFee: presaleFee,
-            scalerDecimals: 7,
             name: name,
             symbol: symbol,
             uri: uri,
-            maxInterest: 3000000,
-            minInterest: 100000,
-            curveMod: 3,
-            presaleBaseSplit: baseSplit
+            presaleBaseSplit: baseSplit,
+            creatorBuyMax: new anchor.BN(10000 * (10 ** 6))
         })
         .accountsPartial({
             creator: user,
             marketBase: marketBaseAddress,
             marketState: marketStateAddress,
+            marketPreset: new PublicKey(MARKET_PRESET_ADDRESS),
             baseMint: baseMintAddress,
             quoteMint: quoteMint,
             metadata: metadataAddress,
@@ -270,7 +261,7 @@ export async function presaleBuyIx(
     program: anchor.Program<Limitless>,
   ): Promise<anchor.web3.TransactionInstruction> {
     //TODO pass in market as parameter
-    const randomChars = Math.random().toString(36).substring(2, 7);
+    const randomChars = await randomString(20);
     let [presaleCouponAddress] = await anchor.web3.PublicKey.findProgramAddress(
       [market.toBuffer(), user.toBuffer(), Buffer.from(randomChars)],
       program.programId
@@ -964,7 +955,7 @@ export function findRoot(a: Decimal, s: Decimal, k: Decimal, divisorPow: Decimal
         x = x_new;
     }
 
-    throw new Error('Newton-Raphson method did not converge within the maximum number of iterations.');
+    //throw new Error('Newton-Raphson method did not converge within the maximum number of iterations.');
 }
 function bisectionMethod(a: Decimal, s: Decimal, k: Decimal, divisorPow: Decimal): Decimal {
     // const divisorPowExp = new Decimal(10).pow(divisorPow);
@@ -1109,3 +1100,11 @@ export async function floorProceedsWPrice(
 
     return proceedsNormalized;
 }
+export async function randomString(length: number): Promise<string> {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+};

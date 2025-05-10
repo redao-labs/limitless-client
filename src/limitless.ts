@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/limitless.json`.
  */
 export type Limitless = {
-  "address": "2VPmfzaJhVR9DpJJJwfW4sXGbAPRdcQjRhswjmS5Fx8D",
+  "address": "Hrb8aUy7HF4ArHGyfU6fRpHwKLwCPHT5aBVQj83G5Z5",
   "metadata": {
     "name": "limitless",
     "version": "0.1.0",
@@ -1087,6 +1087,38 @@ export type Limitless = {
         {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "eventAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
         }
       ],
       "args": []
@@ -1144,6 +1176,38 @@ export type Limitless = {
         {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "eventAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
         }
       ],
       "args": []
@@ -1439,6 +1503,38 @@ export type Limitless = {
         {
           "name": "rent",
           "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "eventAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
         }
       ],
       "args": [
@@ -1447,8 +1543,12 @@ export type Limitless = {
           "type": "string"
         },
         {
-          "name": "fee",
-          "type": "u32"
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "createMarketBaseParams"
+            }
+          }
         }
       ]
     },
@@ -1562,6 +1662,22 @@ export type Limitless = {
           }
         },
         {
+          "name": "marketPreset",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "marketBase"
+              },
+              {
+                "kind": "account",
+                "path": "market_preset.id",
+                "account": "marketPreset"
+              }
+            ]
+          }
+        },
+        {
           "name": "marketState",
           "writable": true,
           "pda": {
@@ -1629,6 +1745,38 @@ export type Limitless = {
         {
           "name": "clock",
           "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "eventAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
         }
       ],
       "args": [
@@ -1641,6 +1789,112 @@ export type Limitless = {
           "type": {
             "defined": {
               "name": "createMarketParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "createMarketPreset",
+      "discriminator": [
+        124,
+        49,
+        58,
+        250,
+        1,
+        16,
+        221,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketBase",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "market_base.id",
+                "account": "marketBase"
+              }
+            ]
+          }
+        },
+        {
+          "name": "marketPreset",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "marketBase"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "quoteMint"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "eventAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "id",
+          "type": "string"
+        },
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "createMarketPresetParams"
             }
           }
         }
@@ -1666,7 +1920,6 @@ export type Limitless = {
         },
         {
           "name": "marketBase",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -1777,7 +2030,6 @@ export type Limitless = {
         },
         {
           "name": "marketBase",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -1898,7 +2150,6 @@ export type Limitless = {
         },
         {
           "name": "marketBase",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -2020,7 +2271,6 @@ export type Limitless = {
         },
         {
           "name": "marketBase",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -2135,7 +2385,6 @@ export type Limitless = {
         },
         {
           "name": "marketBase",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -2543,7 +2792,6 @@ export type Limitless = {
         },
         {
           "name": "baseMint",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -2666,6 +2914,143 @@ export type Limitless = {
       "args": [
         {
           "name": "depositAmount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "donateFloor",
+      "discriminator": [
+        187,
+        196,
+        229,
+        233,
+        116,
+        233,
+        4,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "marketBase",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "market_base.id",
+                "account": "marketBase"
+              }
+            ]
+          }
+        },
+        {
+          "name": "marketState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "marketBase"
+              },
+              {
+                "kind": "account",
+                "path": "market_state.id",
+                "account": "marketState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "userQuoteToken",
+          "writable": true
+        },
+        {
+          "name": "quoteTokenFloorVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "marketState"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  113,
+                  117,
+                  111,
+                  116,
+                  101,
+                  95,
+                  102,
+                  108,
+                  111,
+                  111,
+                  114,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "eventAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
           "type": "u64"
         }
       ]
@@ -3445,7 +3830,6 @@ export type Limitless = {
         },
         {
           "name": "baseMint",
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -3605,6 +3989,19 @@ export type Limitless = {
       ]
     },
     {
+      "name": "marketPreset",
+      "discriminator": [
+        112,
+        30,
+        67,
+        124,
+        54,
+        56,
+        176,
+        157
+      ]
+    },
+    {
       "name": "marketState",
       "discriminator": [
         0,
@@ -3646,55 +4043,133 @@ export type Limitless = {
       ]
     },
     {
-      "name": "borrowEvent",
+      "name": "borrowRepayEvent",
       "discriminator": [
-        86,
-        8,
-        140,
-        206,
+        145,
+        225,
+        128,
+        71,
+        30,
+        10,
+        61,
+        57
+      ]
+    },
+    {
+      "name": "couponClaimEvent",
+      "discriminator": [
+        117,
+        228,
+        117,
+        152,
+        6,
+        79,
+        244,
+        237
+      ]
+    },
+    {
+      "name": "createBaseEvent",
+      "discriminator": [
+        158,
+        49,
+        175,
+        144,
+        186,
+        181,
+        103,
+        226
+      ]
+    },
+    {
+      "name": "createMarketEvent",
+      "discriminator": [
+        192,
+        85,
+        193,
+        210,
+        137,
+        36,
+        225,
+        173
+      ]
+    },
+    {
+      "name": "createMarketPresetEvent",
+      "discriminator": [
+        116,
+        96,
+        146,
+        176,
+        27,
+        232,
+        66,
+        215
+      ]
+    },
+    {
+      "name": "creatorFeeClaimEvent",
+      "discriminator": [
+        165,
+        50,
+        11,
+        230,
+        122,
         215,
-        179,
-        118,
-        201
+        114,
+        169
       ]
     },
     {
-      "name": "claimEvent",
-      "discriminator": [
-        93,
-        15,
-        70,
-        170,
-        48,
-        140,
-        212,
-        219
-      ]
-    },
-    {
-      "name": "liquidationEvent",
+      "name": "depositWithdrawEvent",
       "discriminator": [
         3,
-        13,
-        21,
-        93,
-        173,
-        136,
-        72,
-        144
+        169,
+        153,
+        171,
+        156,
+        2,
+        60,
+        159
       ]
     },
     {
-      "name": "liquidationEventFloor",
+      "name": "donateFloorEvent",
       "discriminator": [
-        20,
+        9,
+        48,
+        167,
+        30,
         161,
-        116,
-        121,
-        129,
-        118,
-        249,
-        138
+        255,
+        228,
+        93
+      ]
+    },
+    {
+      "name": "platformFeeClaimEvent",
+      "discriminator": [
+        32,
+        81,
+        228,
+        220,
+        157,
+        89,
+        149,
+        227
+      ]
+    },
+    {
+      "name": "presaleTradeEvent",
+      "discriminator": [
+        228,
+        226,
+        217,
+        79,
+        242,
+        37,
+        73,
+        112
       ]
     },
     {
@@ -3957,6 +4432,91 @@ export type Limitless = {
       "code": 6043,
       "name": "nonZeroAccountError",
       "msg": "Unable to close non zero account!"
+    },
+    {
+      "code": 6044,
+      "name": "presetDisabledError",
+      "msg": "Market preset disabled!"
+    },
+    {
+      "code": 6045,
+      "name": "decimalMismatchError",
+      "msg": "Preset and quote decimal mismatch!"
+    },
+    {
+      "code": 6046,
+      "name": "invalidQuoteMintError",
+      "msg": "Invalid quote mint!"
+    },
+    {
+      "code": 6047,
+      "name": "buyFeeTooLargeError",
+      "msg": "Buy fee too large!"
+    },
+    {
+      "code": 6048,
+      "name": "buyFeeTooSmallError",
+      "msg": "Buy fee too small!"
+    },
+    {
+      "code": 6049,
+      "name": "sellFeeTooLargeError",
+      "msg": "Sell fee too large!"
+    },
+    {
+      "code": 6050,
+      "name": "sellFeeTooSmallError",
+      "msg": "Sell fee too small!"
+    },
+    {
+      "code": 6051,
+      "name": "creatorSplitTooLargeError",
+      "msg": "Creator split too large!"
+    },
+    {
+      "code": 6052,
+      "name": "presaleDurationTooShortError",
+      "msg": "Presale duration too short!"
+    },
+    {
+      "code": 6053,
+      "name": "presaleFeeTooLargeError",
+      "msg": "Presale fee too large!"
+    },
+    {
+      "code": 6054,
+      "name": "presaleFeeTooSmallError",
+      "msg": "Presale fee too small!"
+    },
+    {
+      "code": 6055,
+      "name": "presaleSplitTooLargeError",
+      "msg": "Presale split too large!"
+    },
+    {
+      "code": 6056,
+      "name": "creatorBuyDisabledError",
+      "msg": "Creator buy disabled!"
+    },
+    {
+      "code": 6057,
+      "name": "marketVaultsNotCreatedError",
+      "msg": "Vaults not created!"
+    },
+    {
+      "code": 6058,
+      "name": "insufficientQuoteLiquidityError",
+      "msg": "Insufficient quote liquidity!"
+    },
+    {
+      "code": 6059,
+      "name": "ammSellFloorError",
+      "msg": "Amm sell is at floor!"
+    },
+    {
+      "code": 6060,
+      "name": "noAvailableFeesError",
+      "msg": "No fees to claim!"
     }
   ],
   "types": [
@@ -3982,14 +4542,18 @@ export type Limitless = {
             "type": "u64"
           },
           {
-            "name": "decimals",
-            "type": "u8"
+            "name": "preset",
+            "type": "u16"
+          },
+          {
+            "name": "baseMint",
+            "type": "pubkey"
           }
         ]
       }
     },
     {
-      "name": "borrowEvent",
+      "name": "borrowRepayEvent",
       "type": {
         "kind": "struct",
         "fields": [
@@ -4014,8 +4578,20 @@ export type Limitless = {
             "type": "u64"
           },
           {
+            "name": "floorPool",
+            "type": "u64"
+          },
+          {
+            "name": "quotePool",
+            "type": "u64"
+          },
+          {
             "name": "decimals",
             "type": "u8"
+          },
+          {
+            "name": "baseMint",
+            "type": "pubkey"
           }
         ]
       }
@@ -4037,10 +4613,14 @@ export type Limitless = {
       }
     },
     {
-      "name": "claimEvent",
+      "name": "couponClaimEvent",
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "quoteDeposit",
+            "type": "u64"
+          },
           {
             "name": "amount",
             "type": "u64"
@@ -4050,24 +4630,116 @@ export type Limitless = {
             "type": "u64"
           },
           {
-            "name": "divisorPow",
-            "type": "u8"
+            "name": "preset",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "createBaseEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fee",
+            "type": "u16"
           },
           {
-            "name": "gradient",
-            "type": "u32"
+            "name": "feeBps",
+            "type": "u16"
           },
           {
-            "name": "offset",
-            "type": "u32"
+            "name": "buyFee",
+            "type": "u16"
           },
           {
-            "name": "scaler",
-            "type": "u8"
+            "name": "sellFee",
+            "type": "u16"
           },
           {
-            "name": "decimals",
-            "type": "u8"
+            "name": "creatorSplit",
+            "type": "u16"
+          },
+          {
+            "name": "pBuyFee",
+            "type": "u16"
+          },
+          {
+            "name": "pCreatorSplit",
+            "type": "u16"
+          },
+          {
+            "name": "minPOffset",
+            "type": "i64"
+          },
+          {
+            "name": "minDelayDelta",
+            "type": "i64"
+          },
+          {
+            "name": "maxDelayDelta",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "createMarketBaseParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "platformFee",
+            "type": "u16"
+          },
+          {
+            "name": "maxBuyFee",
+            "type": "u16"
+          },
+          {
+            "name": "maxSellFee",
+            "type": "u16"
+          },
+          {
+            "name": "maxCreatorSplit",
+            "type": "u16"
+          },
+          {
+            "name": "maxPBuyFee",
+            "type": "u16"
+          },
+          {
+            "name": "maxPCreatorSplit",
+            "type": "u16"
+          },
+          {
+            "name": "minPOffset",
+            "type": "i64"
+          },
+          {
+            "name": "minDelayDelta",
+            "type": "i64"
+          },
+          {
+            "name": "maxDelayDelta",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "createMarketEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "launchDate",
+            "type": "i64"
+          },
+          {
+            "name": "presaleOffset",
+            "type": "i64"
           }
         ]
       }
@@ -4078,36 +4750,12 @@ export type Limitless = {
         "kind": "struct",
         "fields": [
           {
-            "name": "startQuantity",
-            "type": "u64"
-          },
-          {
-            "name": "offset",
-            "type": "u64"
-          },
-          {
-            "name": "minTradeSize",
-            "type": "u64"
-          },
-          {
-            "name": "gradient",
-            "type": "u64"
-          },
-          {
-            "name": "preMint",
-            "type": "u64"
-          },
-          {
-            "name": "continuousMint",
-            "type": "bool"
-          },
-          {
             "name": "buyFee",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "sellFee",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "launchDate",
@@ -4115,19 +4763,7 @@ export type Limitless = {
           },
           {
             "name": "creatorSplit",
-            "type": "u32"
-          },
-          {
-            "name": "divisorPow",
-            "type": "u8"
-          },
-          {
-            "name": "pow1",
-            "type": "u8"
-          },
-          {
-            "name": "pow2",
-            "type": "u8"
+            "type": "u16"
           },
           {
             "name": "presaleOffset",
@@ -4135,15 +4771,11 @@ export type Limitless = {
           },
           {
             "name": "presaleSplit",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "presaleFee",
-            "type": "u32"
-          },
-          {
-            "name": "scalerDecimals",
-            "type": "u8"
+            "type": "u16"
           },
           {
             "name": "name",
@@ -4158,20 +4790,124 @@ export type Limitless = {
             "type": "string"
           },
           {
-            "name": "maxInterest",
-            "type": "u32"
+            "name": "presaleBaseSplit",
+            "type": "bool"
           },
           {
-            "name": "minInterest",
-            "type": "u32"
+            "name": "creatorBuyMax",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "createMarketPresetEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "presetEnabled",
+            "type": "bool"
           },
           {
-            "name": "curveMod",
+            "name": "decimals",
             "type": "u8"
           },
           {
-            "name": "presaleBaseSplit",
+            "name": "startQ",
+            "type": "u64"
+          },
+          {
+            "name": "offset",
+            "type": "u64"
+          },
+          {
+            "name": "gradient",
+            "type": "u64"
+          },
+          {
+            "name": "divisorPow",
+            "type": "u8"
+          },
+          {
+            "name": "pow1",
+            "type": "u8"
+          },
+          {
+            "name": "pow2",
+            "type": "u8"
+          },
+          {
+            "name": "scalerDecimals",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "createMarketPresetParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "presetEnabled",
             "type": "bool"
+          },
+          {
+            "name": "decimals",
+            "type": "u8"
+          },
+          {
+            "name": "startQ",
+            "type": "u64"
+          },
+          {
+            "name": "offset",
+            "type": "u64"
+          },
+          {
+            "name": "gradient",
+            "type": "u64"
+          },
+          {
+            "name": "divisorPow",
+            "type": "u8"
+          },
+          {
+            "name": "pow1",
+            "type": "u8"
+          },
+          {
+            "name": "pow2",
+            "type": "u8"
+          },
+          {
+            "name": "scalerDecimals",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "creatorFeeClaimEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "baseMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "tokenAccount",
+            "type": "pubkey"
+          },
+          {
+            "name": "preset",
+            "type": "u16"
           }
         ]
       }
@@ -4190,6 +4926,10 @@ export type Limitless = {
             "type": "u8"
           },
           {
+            "name": "decimals",
+            "type": "u8"
+          },
+          {
             "name": "totalDepositBase",
             "type": "u64"
           },
@@ -4200,77 +4940,41 @@ export type Limitless = {
           {
             "name": "marketStateAddress",
             "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "liquidationEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "cqd",
-            "type": "u64"
           },
           {
-            "name": "quotePool",
-            "type": "u64"
-          },
-          {
-            "name": "basePool",
-            "type": "u64"
-          },
-          {
-            "name": "isBuy",
-            "type": "bool"
-          },
-          {
-            "name": "divisorPow",
-            "type": "u8"
-          },
-          {
-            "name": "gradient",
-            "type": "u32"
-          },
-          {
-            "name": "offset",
-            "type": "u32"
-          },
-          {
-            "name": "scaler",
-            "type": "u8"
-          },
-          {
-            "name": "decimals",
-            "type": "u8"
-          },
-          {
-            "name": "target",
+            "name": "baseMintAddress",
             "type": "pubkey"
           }
         ]
       }
     },
     {
-      "name": "liquidationEventFloor",
+      "name": "depositWithdrawEvent",
       "type": {
         "kind": "struct",
         "fields": [
           {
+            "name": "totalDepositedGlobal",
+            "type": "u64"
+          },
+          {
+            "name": "totalBorrowedGlobal",
+            "type": "u64"
+          },
+          {
+            "name": "totalDeposited",
+            "type": "u64"
+          },
+          {
+            "name": "totalBorrowed",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
             "name": "floorPool",
-            "type": "u64"
-          },
-          {
-            "name": "totalBurned",
-            "type": "u64"
-          },
-          {
-            "name": "totalBurnCost",
-            "type": "u64"
-          },
-          {
-            "name": "cqd",
             "type": "u64"
           },
           {
@@ -4278,35 +4982,27 @@ export type Limitless = {
             "type": "u64"
           },
           {
-            "name": "basePool",
+            "name": "decimals",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "donateFloorEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
             "type": "u64"
           },
           {
-            "name": "isBuy",
-            "type": "bool"
+            "name": "preset",
+            "type": "u16"
           },
           {
-            "name": "divisorPow",
-            "type": "u8"
-          },
-          {
-            "name": "gradient",
-            "type": "u32"
-          },
-          {
-            "name": "offset",
-            "type": "u32"
-          },
-          {
-            "name": "scaler",
-            "type": "u8"
-          },
-          {
-            "name": "decimals",
-            "type": "u8"
-          },
-          {
-            "name": "target",
+            "name": "baseMint",
             "type": "pubkey"
           }
         ]
@@ -4322,7 +5018,7 @@ export type Limitless = {
             "type": {
               "array": [
                 "u8",
-                20
+                5
               ]
             }
           },
@@ -4340,7 +5036,7 @@ export type Limitless = {
           },
           {
             "name": "platformFee",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "feeAddress",
@@ -4348,19 +5044,116 @@ export type Limitless = {
           },
           {
             "name": "feeBps",
-            "type": "u32"
+            "type": "u16"
+          },
+          {
+            "name": "maxBuyFee",
+            "type": "u16"
+          },
+          {
+            "name": "maxSellFee",
+            "type": "u16"
+          },
+          {
+            "name": "maxCreatorSplit",
+            "type": "u16"
+          },
+          {
+            "name": "maxPBuyFee",
+            "type": "u16"
+          },
+          {
+            "name": "maxPCreatorSplit",
+            "type": "u16"
+          },
+          {
+            "name": "minPOffset",
+            "type": "i64"
+          },
+          {
+            "name": "minDelayDelta",
+            "type": "i64"
+          },
+          {
+            "name": "maxDelayDelta",
+            "type": "i64"
+          },
+          {
+            "name": "marketPresetIndex",
+            "type": "u16"
           },
           {
             "name": "isPaused",
             "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "marketPreset",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "array": [
+                "u8",
+                20
+              ]
+            }
           },
           {
-            "name": "season",
-            "type": "u32"
+            "name": "index",
+            "type": "u16"
           },
           {
-            "name": "seasonEnabled",
+            "name": "marketBaseAddress",
+            "type": "pubkey"
+          },
+          {
+            "name": "quoteMintAddress",
+            "type": "pubkey"
+          },
+          {
+            "name": "marketPresetBump",
+            "type": "u8"
+          },
+          {
+            "name": "presetEnabled",
             "type": "bool"
+          },
+          {
+            "name": "decimals",
+            "type": "u8"
+          },
+          {
+            "name": "startQ",
+            "type": "u64"
+          },
+          {
+            "name": "offset",
+            "type": "u64"
+          },
+          {
+            "name": "gradient",
+            "type": "u64"
+          },
+          {
+            "name": "divisorPow",
+            "type": "u8"
+          },
+          {
+            "name": "pow1",
+            "type": "u8"
+          },
+          {
+            "name": "pow2",
+            "type": "u8"
+          },
+          {
+            "name": "scalerDecimals",
+            "type": "u8"
           }
         ]
       }
@@ -4419,10 +5212,6 @@ export type Limitless = {
             "type": "u64"
           },
           {
-            "name": "price",
-            "type": "u64"
-          },
-          {
             "name": "baseDecimals",
             "type": "u8"
           },
@@ -4459,28 +5248,12 @@ export type Limitless = {
             "type": "u64"
           },
           {
-            "name": "totalSoldBase",
-            "type": "u128"
-          },
-          {
-            "name": "totalSoldQuote",
-            "type": "u128"
-          },
-          {
-            "name": "totalBoughtBase",
-            "type": "u128"
-          },
-          {
-            "name": "totalBoughtQuote",
-            "type": "u128"
-          },
-          {
             "name": "totalSells",
-            "type": "u128"
+            "type": "u64"
           },
           {
             "name": "totalBuys",
-            "type": "u128"
+            "type": "u64"
           },
           {
             "name": "totalMinted",
@@ -4536,40 +5309,24 @@ export type Limitless = {
             "type": "i64"
           },
           {
-            "name": "preMint",
-            "type": "u64"
-          },
-          {
-            "name": "preMintClaimed",
-            "type": "bool"
-          },
-          {
-            "name": "continuousMint",
-            "type": "bool"
-          },
-          {
-            "name": "creatorMinted",
-            "type": "u64"
-          },
-          {
             "name": "buyFee",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "sellFee",
-            "type": "u32"
-          },
-          {
-            "name": "receiveAddress",
-            "type": "pubkey"
+            "type": "u16"
           },
           {
             "name": "creatorSplit",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "index",
             "type": "u64"
+          },
+          {
+            "name": "presetIndex",
+            "type": "u16"
           },
           {
             "name": "scalerDecimals",
@@ -4617,11 +5374,11 @@ export type Limitless = {
           },
           {
             "name": "presaleSplit",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "presaleFee",
-            "type": "u32"
+            "type": "u16"
           },
           {
             "name": "pow1",
@@ -4664,15 +5421,15 @@ export type Limitless = {
             "type": "bool"
           },
           {
-            "name": "vaultsCreated5",
-            "type": "bool"
-          },
-          {
             "name": "presaleBaseSplit",
             "type": "bool"
           },
           {
             "name": "creatorBaseShare",
+            "type": "u64"
+          },
+          {
+            "name": "creatorBuyMax",
             "type": "u64"
           },
           {
@@ -4682,6 +5439,42 @@ export type Limitless = {
           {
             "name": "creatorClaimed",
             "type": "bool"
+          },
+          {
+            "name": "minPresaleTarget",
+            "type": "u64"
+          },
+          {
+            "name": "nftAuth",
+            "type": "bool"
+          },
+          {
+            "name": "nftMint",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "platformFeeClaimEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "baseMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "tokenAccount",
+            "type": "pubkey"
+          },
+          {
+            "name": "preset",
+            "type": "u16"
           }
         ]
       }
@@ -4709,12 +5502,72 @@ export type Limitless = {
             "type": "pubkey"
           },
           {
+            "name": "baseMintAddress",
+            "type": "pubkey"
+          },
+          {
             "name": "quoteDeposited",
             "type": "u64"
           },
           {
+            "name": "decimals",
+            "type": "u8"
+          },
+          {
             "name": "couponBump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "presaleTradeEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cqd",
+            "type": "u64"
+          },
+          {
+            "name": "quotePool",
+            "type": "u64"
+          },
+          {
+            "name": "basePool",
+            "type": "u64"
+          },
+          {
+            "name": "isBuy",
+            "type": "bool"
+          },
+          {
+            "name": "preset",
+            "type": "u16"
+          },
+          {
+            "name": "inAmt",
+            "type": "u64"
+          },
+          {
+            "name": "outAmt",
+            "type": "u64"
+          },
+          {
+            "name": "platFee",
+            "type": "u64"
+          },
+          {
+            "name": "baseSplit",
+            "type": "bool"
+          },
+          {
+            "name": "creatorFee",
+            "type": "u64"
+          },
+          {
+            "name": "floorFee",
+            "type": "u64"
           }
         ]
       }
@@ -4753,24 +5606,16 @@ export type Limitless = {
             "type": "bool"
           },
           {
-            "name": "divisorPow",
-            "type": "u8"
+            "name": "preset",
+            "type": "u16"
           },
           {
-            "name": "gradient",
-            "type": "u32"
+            "name": "inAmt",
+            "type": "u64"
           },
           {
-            "name": "offset",
-            "type": "u32"
-          },
-          {
-            "name": "scaler",
-            "type": "u8"
-          },
-          {
-            "name": "decimals",
-            "type": "u8"
+            "name": "outAmt",
+            "type": "u64"
           }
         ]
       }
@@ -4813,24 +5658,28 @@ export type Limitless = {
             "type": "bool"
           },
           {
-            "name": "divisorPow",
-            "type": "u8"
+            "name": "preset",
+            "type": "u16"
           },
           {
-            "name": "gradient",
-            "type": "u32"
+            "name": "inAmt",
+            "type": "u64"
           },
           {
-            "name": "offset",
-            "type": "u32"
+            "name": "outAmt",
+            "type": "u64"
           },
           {
-            "name": "scaler",
-            "type": "u8"
+            "name": "platFee",
+            "type": "u64"
           },
           {
-            "name": "decimals",
-            "type": "u8"
+            "name": "creatorFee",
+            "type": "u64"
+          },
+          {
+            "name": "floorFee",
+            "type": "u64"
           }
         ]
       }
@@ -4845,24 +5694,12 @@ export type Limitless = {
             "type": "u64"
           },
           {
-            "name": "divisorPow",
-            "type": "u8"
+            "name": "preset",
+            "type": "u16"
           },
           {
-            "name": "gradient",
-            "type": "u32"
-          },
-          {
-            "name": "offset",
-            "type": "u32"
-          },
-          {
-            "name": "scaler",
-            "type": "u8"
-          },
-          {
-            "name": "decimals",
-            "type": "u8"
+            "name": "baseMint",
+            "type": "pubkey"
           }
         ]
       }

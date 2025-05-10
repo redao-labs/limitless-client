@@ -29,7 +29,7 @@ async function runPresaleLooperCleaner(client: LimitlessSDK, quote: PublicKey) {
         console.log("Balance:", baseToken.amount, "Mint:", baseToken.mint.toBase58())
         if (baseToken.mint.toBase58() != quote.toBase58() && baseToken.amount > BigInt(0)) {
             console.log("Selling balance!")
-            const marketStateRes = await fetch(`https://devnet.api.takeoff.lol/marketState?baseMintAddress=${baseToken.mint.toBase58()}`);
+            const marketStateRes = await fetch(`http:/localhost:1337/marketState?baseMintAddress=${baseToken.mint.toBase58()}`);
             const marketState = await marketStateRes.json()
             let marketStateStruct = await client.getMarket(new PublicKey(marketState.address))
             let marketAddress = new PublicKey(marketState.address)
@@ -49,6 +49,15 @@ async function runPresaleLooperCleaner(client: LimitlessSDK, quote: PublicKey) {
                 console.log("Min proceeds floor:", minProceedsFloor.toString())
                 let sellFloorRes = await client.sellFloor(new anchor.BN(sellInfo.sellFloorQ.toString()), new anchor.BN(minProceedsFloor.floor().toString()), marketAddress, marketStateStruct, allBaseTokens.value[i].pubkey);
             }
+        } else if (baseToken.mint.toBase58() != quote.toBase58()) {
+            let txhash = await closeAccount(
+                client.connection, // connection
+                client.wallet.payer, // payer
+                allBaseTokens.value[i].pubkey, // token account which you want to close
+                client.wallet.publicKey, // destination
+                client.wallet.payer, // owner of token account
+            );
+            console.log(`Closed account: ${txhash}`);
         }
         //get market address for the mint
         //create deposit account, deposit into deposit account

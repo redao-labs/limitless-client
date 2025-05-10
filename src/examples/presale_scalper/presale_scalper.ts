@@ -59,8 +59,11 @@ async function runPresaleOperations(client: LimitlessSDK, quote: PublicKey) {
             const buyPresaleInfo = await client.presaleBuyInfo(cost, marketState);
             console.log("Expected pool addition:", buyPresaleInfo.out.div(10 ** marketState.baseDecimals).toString());
             console.log(`New price: ${buyPresaleInfo.newPrice.toString()}, Price impact: ${buyPresaleInfo.priceIncrease.toString()}%`);
+            let maxCostPresale = new anchor.BN(new Decimal(cost).mul(1.01).floor().toString())
+            console.log("Max cost:", new Decimal(maxCostPresale.toString()).div(10 ** marketState.quoteDecimals).toString())
             await client.presaleBuy(
                 new anchor.BN(buyPresaleInfo.out.toString()),
+                new anchor.BN(maxCostPresale.toString()),
                 associatedQuoteAddress,
                 marketAddress,
                 marketState
@@ -99,7 +102,7 @@ async function runTradingOperations(client: LimitlessSDK, quote: PublicKey) {
             try {
                 const baseTokenAddress = await getAssociatedTokenAddress(marketState.baseMintAddress, client.wallet.publicKey);
                 const baseTokenAcc = await getAccount(client.connection, baseTokenAddress);
-            } catch(e) {
+            } catch (e) {
                 bid = true
             }
             if (market.floorratio > 0.4 || bid) {

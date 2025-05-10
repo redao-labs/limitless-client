@@ -73,9 +73,12 @@ async function runShowcase(client: LimitlessSDK, quote: PublicKey) {
     console.log("Expected amount that will be added to the presale pool:", buyPresaleInfo.out.div(10 ** marketState.baseDecimals).toString())
     console.log(`Expected new price: ${buyPresaleInfo.newPrice.toString()}. Expected price impact: ${buyPresaleInfo.priceIncrease.toString()}%`)
     console.log(`Expected coupon share of pool: ${buyPresaleInfo.presaleInfo.baseSharePercent}%. Expected base tokens received: ${buyPresaleInfo.presaleInfo.baseShare.toString()}. Average price: ${buyPresaleInfo.presaleInfo.avgPrice.toString()}`)
+    let maxCostPresale = new anchor.BN(new Decimal(cost).mul(1.01).floor().toString())
+    console.log("Max cost:", new Decimal(maxCostPresale.toString()).div(10 ** marketState.quoteDecimals).toString())
     //todo expected share this coupons will have
     let presaleBuyRes = await client.presaleBuy(
         new anchor.BN(buyPresaleInfo.out.toString()),
+        new anchor.BN(maxCostPresale.toString()),
         associatedQuoteAddress,
         marketAddress,
         marketState
